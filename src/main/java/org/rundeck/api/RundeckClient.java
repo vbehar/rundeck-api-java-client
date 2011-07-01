@@ -7,10 +7,13 @@ import org.apache.commons.lang.StringUtils;
 import org.rundeck.api.RundeckApiException.RundeckApiLoginException;
 import org.rundeck.api.domain.RundeckExecution;
 import org.rundeck.api.domain.RundeckJob;
+import org.rundeck.api.domain.RundeckProject;
 import org.rundeck.api.parser.ExecutionParser;
 import org.rundeck.api.parser.ExecutionsParser;
 import org.rundeck.api.parser.JobParser;
 import org.rundeck.api.parser.JobsParser;
+import org.rundeck.api.parser.ProjectParser;
+import org.rundeck.api.parser.ProjectsParser;
 import org.rundeck.api.util.ArgsUtil;
 import org.rundeck.api.util.AssertUtil;
 
@@ -172,6 +175,32 @@ public class RundeckClient implements Serializable {
         AssertUtil.notBlank(jobId, "jobId is mandatory to trigger a job !");
         String apiPath = "/job/" + jobId + "/run?argString=" + ArgsUtil.generateUrlEncodedArgString(options);
         return new ApiCall(this).get(apiPath, new ExecutionParser("result/executions/execution"));
+    }
+
+    /**
+     * List all projects
+     * 
+     * @return a {@link List} of {@link RundeckProject} : might be empty, but won't be null
+     * @throws RundeckApiException in case of error when calling the API
+     * @throws RundeckApiLoginException if the login failed
+     */
+    public List<RundeckProject> getProjects() throws RundeckApiException, RundeckApiLoginException {
+        return new ApiCall(this).get("/projects", new ProjectsParser("result/projects/project"));
+    }
+
+    /**
+     * Get the definition of a single project, identified by the given name
+     * 
+     * @param projectName name of the project - mandatory
+     * @return a {@link RundeckProject} instance
+     * @throws RundeckApiException in case of error when calling the API
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the projectName is blank (null, empty or whitespace)
+     */
+    public RundeckProject getProject(String projectName) throws RundeckApiException, RundeckApiLoginException,
+            IllegalArgumentException {
+        AssertUtil.notBlank(projectName, "projectName is mandatory to get the details of a project !");
+        return new ApiCall(this).get("/project/" + projectName, new ProjectParser("result/projects/project"));
     }
 
     public String getUrl() {
