@@ -1,0 +1,1 @@
+<result success='true' apiversion='1'><jobs count='2'><job id='1'><name>ls</name><group>system</group><project>test</project><description>list files</description></job><job id='2'><name>ps</name><group>system</group><project>test</project><description>list processes</description></job></jobs></result>
