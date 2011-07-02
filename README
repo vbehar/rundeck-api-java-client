@@ -1,0 +1,6 @@
+
+This branch "gh-pages" is used to deploy the project documentation to GitHub Pages.
+It is automatically managed by the Maven Wagon GitSite : http://khuxtable.github.com/wagon-gitsite/
+
+It is updated when the project is released. If you want to manually update it, just do a "mvn site:deploy".
+
