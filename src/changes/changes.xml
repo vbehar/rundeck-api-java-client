@@ -1,0 +1,15 @@
+<document xmlns="http://maven.apache.org/changes/1.0.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/changes/1.0.0 http://maven.apache.org/xsd/changes-1.0.0.xsd">
+  <properties>
+    <title>Changelog</title>
+    <author>Vincent Behar</author>
+  </properties>
+  <body>
+    <release version="1.0" date="Not yet released" description="Use RunDeck REST API version 1 (RunDeck 1.2+)">
+      <action dev="vbehar" type="add">
+        Initial release
+      </action>
+    </release>
+  </body>
+</document>
