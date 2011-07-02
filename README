@@ -1,8 +1,11 @@
 
 Java client for the RunDeck REST API
 
+Documentation : http://vbehar.github.com/rundeck-api-java-client/
 RunDeck Home : http://rundeck.org/
 
+WORK IN PROGRESS !
+
 LICENSE : The Apache Software License, Version 2.0
-See http://www.apache.org/licenses/LICENSE-2.0.txt
+See http://www.apache.org/licenses/LICENSE-2.0
 
