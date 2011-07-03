@@ -3,13 +3,15 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-    <title>Issue Tracking</title>
+    <title>Using the RunDeck API from Groovy scripts</title>
     <style type="text/css" media="all">
       @import url("./css/maven-base.css");
       @import url("./css/maven-theme.css");
       @import url("./css/site.css");
     </style>
     <link rel="stylesheet" href="./css/print.css" type="text/css" media="print" />
+      <meta name="author" content="Vincent Behar" />
+    <meta name="Date-Creation-yyyymmdd" content="20110703" />
     <meta name="Date-Revision-yyyymmdd" content="20110703" />
     <meta http-equiv="Content-Language" content="en" />
         
@@ -67,46 +69,17 @@
                        <h5>Scripting examples</h5>
                   <ul>
                   <li class="none">
-                          <a href="groovy.html" title="Groovy">Groovy</a>
-            </li>
+            <strong>Groovy</strong>
+          </li>
                   <li class="none">
                           <a href="jruby.html" title="JRuby">JRuby</a>
             </li>
           </ul>
                        <h5>Project Documentation</h5>
                   <ul>
-                                                                                                                                                                                                                              <li class="expanded">
+                                                                                                                                                                                                                    <li class="collapsed">
                           <a href="project-info.html" title="Project Information">Project Information</a>
-                    <ul>
-                      <li class="none">
-                          <a href="index.html" title="About">About</a>
-            </li>
-                      <li class="none">
-                          <a href="distribution-management.html" title="Distribution Management">Distribution Management</a>
-            </li>
-                      <li class="none">
-                          <a href="mail-lists.html" title="Mailing Lists">Mailing Lists</a>
-            </li>
-                      <li class="none">
-            <strong>Issue Tracking</strong>
-          </li>
-                      <li class="none">
-                          <a href="source-repository.html" title="Source Repository">Source Repository</a>
-            </li>
-                      <li class="none">
-                          <a href="project-summary.html" title="Project Summary">Project Summary</a>
-            </li>
-                      <li class="none">
-                          <a href="dependencies.html" title="Dependencies">Dependencies</a>
-            </li>
-                      <li class="none">
-                          <a href="team-list.html" title="Project Team">Project Team</a>
-            </li>
-                      <li class="none">
-                          <a href="license.html" title="Project License">Project License</a>
-            </li>
-              </ul>
-        </li>
+                  </li>
                                                                                                                                                                                                                                                                           <li class="collapsed">
                           <a href="project-reports.html" title="Project Reports">Project Reports</a>
                   </li>
@@ -120,7 +93,16 @@
     </div>
     <div id="bodyColumn">
       <div id="contentBox">
-        <div class="section"><h2>Overview<a name="Overview"></a></h2><a name="Overview"></a><p>This project uses GitHub to manage its issues.</p></div><div class="section"><h2>Issue Tracking<a name="Issue_Tracking"></a></h2><a name="Issue_Tracking"></a><p>Issues, bugs, and feature requests should be submitted to the following issue tracking system for this project.</p><div class="source"><pre><a class="externalLink" href="https://github.com/vbehar/rundeck-api-java-client/issues">https://github.com/vbehar/rundeck-api-java-client/issues</a></pre></div></div>
+        <div class="section"><h2>Using the RunDeck API from Groovy scripts<a name="Using_the_RunDeck_API_from_Groovy_scripts"></a></h2><p>Here are some examples of what you can do with this lib and a few lines of <a class="externalLink" href="http://groovy.codehaus.org/">Groovy</a>. We can use <a class="externalLink" href="http://groovy.codehaus.org/Grape">Grape</a> to download the lib (and its dependencies) from the <a class="externalLink" href="http://search.maven.org/">main maven repository</a>, so you don't have to install anything manually (except Groovy, of course).</p><p><b>Note that the lib is NOT in the main maven repository for the moment...</b> but hopefully it should be pretty soon !</p><div class="section"><h3>Running a job (from its name, group and project)<a name="Running_a_job_from_its_name_group_and_project"></a></h3><p>Save the following script in a file named &quot;<tt>rundeck.groovy</tt>&quot;, and execute it with &quot;<tt>groovy rundeck.groovy</tt>&quot;. Feeling Groovy ? ;-)</p><div class="source"><pre>@Grab(group='org.rundeck', module='rundeck-api-java-client', version='1.0-SNAPSHOT')
+import org.rundeck.api.RundeckClient
+
+rundeck = new RundeckClient(&quot;http://localhost:4440&quot;, &quot;admin&quot;, &quot;admin&quot;)
+
+job = rundeck.findJob(&quot;my-project&quot;, &quot;main-group/sub-group&quot;, &quot;job-name&quot;)
+println &quot;Running job : ${job}&quot;
+
+execution = rundeck.triggerJob(job.id)
+println &quot;Follow the execution at : ${execution.url}&quot;</pre></div></div><div class="section"><h3>And more...<a name="And_more..."></a></h3><p>See the API documentation of the <a href="./apidocs/org/rundeck/api/RundeckClient.html">RundeckClient</a> class for more interactions with your RunDeck instance...</p></div></div>
       </div>
     </div>
     <div class="clear">
