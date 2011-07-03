@@ -87,8 +87,8 @@ public class RundeckClient implements Serializable {
      * Get the definition of a single project, identified by the given name
      * 
      * @param projectName name of the project - mandatory
-     * @return a {@link RundeckProject} instance
-     * @throws RundeckApiException in case of error when calling the API
+     * @return a {@link RundeckProject} instance - won't be null
+     * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
      * @throws RundeckApiLoginException if the login failed
      * @throws IllegalArgumentException if the projectName is blank (null, empty or whitespace)
      */
@@ -151,8 +151,8 @@ public class RundeckClient implements Serializable {
      * Get the definition of a single job, identified by the given ID
      * 
      * @param jobId identifier of the job - mandatory
-     * @return a {@link RundeckJob} instance
-     * @throws RundeckApiException in case of error when calling the API
+     * @return a {@link RundeckJob} instance - won't be null
+     * @throws RundeckApiException in case of error when calling the API (non-existent job with this ID)
      * @throws RundeckApiLoginException if the login failed
      * @throws IllegalArgumentException if the jobId is blank (null, empty or whitespace)
      */
@@ -168,8 +168,8 @@ public class RundeckClient implements Serializable {
      * 
      * @param jobId identifier of the job - mandatory
      * @param options of the job - optional
-     * @return a {@link RundeckExecution} instance representing the newly created (and running) execution
-     * @throws RundeckApiException in case of error when calling the API
+     * @return a {@link RundeckExecution} instance for the newly created (and running) execution - won't be null
+     * @throws RundeckApiException in case of error when calling the API (non-existent job with this ID)
      * @throws RundeckApiLoginException if the login failed
      * @throws IllegalArgumentException if the jobId is blank (null, empty or whitespace)
      */
@@ -189,7 +189,7 @@ public class RundeckClient implements Serializable {
      * 
      * @param jobId identifier of the job - mandatory
      * @return a {@link List} of {@link RundeckExecution} : might be empty, but won't be null
-     * @throws RundeckApiException in case of error when calling the API
+     * @throws RundeckApiException in case of error when calling the API (non-existent job with this ID)
      * @throws RundeckApiLoginException if the login failed
      * @throws IllegalArgumentException if the jobId is blank (null, empty or whitespace)
      */
@@ -204,8 +204,8 @@ public class RundeckClient implements Serializable {
      * Get a single execution, identified by the given ID
      * 
      * @param executionId identifier of the execution - mandatory
-     * @return a {@link RundeckExecution} instance
-     * @throws RundeckApiException in case of error when calling the API
+     * @return a {@link RundeckExecution} instance - won't be null
+     * @throws RundeckApiException in case of error when calling the API (non-existent execution with this ID)
      * @throws RundeckApiLoginException if the login failed
      * @throws IllegalArgumentException if the executionId is null
      */
