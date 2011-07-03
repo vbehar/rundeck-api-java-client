@@ -107,7 +107,7 @@ public class RundeckClient implements Serializable {
      * 
      * @param project name of the project - mandatory
      * @return a {@link List} of {@link RundeckJob} : might be empty, but won't be null
-     * @throws RundeckApiException in case of error when calling the API
+     * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
      * @throws RundeckApiLoginException if the login failed
      * @throws IllegalArgumentException if the project is blank (null, empty or whitespace)
      * @see #getJobs(String, String, String, String...)
@@ -125,7 +125,7 @@ public class RundeckClient implements Serializable {
      * @param groupPath a group or partial group path to include all jobs within that group path - optional
      * @param jobIds a list of Job IDs to include - optional
      * @return a {@link List} of {@link RundeckJob} : might be empty, but won't be null
-     * @throws RundeckApiException in case of error when calling the API
+     * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
      * @throws RundeckApiLoginException if the login failed
      * @throws IllegalArgumentException if the project is blank (null, empty or whitespace)
      * @see #getJobs(String)
@@ -148,6 +148,26 @@ public class RundeckClient implements Serializable {
     }
 
     /**
+     * Find a job, identified by its project, group and name. Note that the groupPath is optional, as a job does not
+     * need to belong to a group (either pass null, or an empty string).
+     * 
+     * @param project name of the project - mandatory
+     * @param groupPath group to which the job belongs (if it belongs to a group) - optional
+     * @param name of the job to find - mandatory
+     * @return a {@link RundeckJob} instance - null if not found
+     * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the project or the name is blank (null, empty or whitespace)
+     */
+    public RundeckJob findJob(String project, String groupPath, String name) throws RundeckApiException,
+            RundeckApiLoginException, IllegalArgumentException {
+        AssertUtil.notBlank(project, "project is mandatory to find a job !");
+        AssertUtil.notBlank(name, "job name is mandatory to find a job !");
+        List<RundeckJob> jobs = getJobs(project, name, groupPath, new String[0]);
+        return jobs.isEmpty() ? null : jobs.get(0);
+    }
+
+    /**
      * Get the definition of a single job, identified by the given ID
      * 
      * @param jobId identifier of the job - mandatory
@@ -167,17 +187,37 @@ public class RundeckClient implements Serializable {
      * end of the job execution)
      * 
      * @param jobId identifier of the job - mandatory
+     * @return a {@link RundeckExecution} instance for the newly created (and running) execution - won't be null
+     * @throws RundeckApiException in case of error when calling the API (non-existent job with this ID)
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the jobId is blank (null, empty or whitespace)
+     * @see #triggerJob(String, Properties)
+     */
+    public RundeckExecution triggerJob(String jobId) throws RundeckApiException, RundeckApiLoginException,
+            IllegalArgumentException {
+        return triggerJob(jobId, null);
+    }
+
+    /**
+     * Trigger the execution of a RunDeck job (identified by the given ID), and return immediately (without waiting the
+     * end of the job execution)
+     * 
+     * @param jobId identifier of the job - mandatory
      * @param options of the job - optional
      * @return a {@link RundeckExecution} instance for the newly created (and running) execution - won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent job with this ID)
      * @throws RundeckApiLoginException if the login failed
      * @throws IllegalArgumentException if the jobId is blank (null, empty or whitespace)
+     * @see #triggerJob(String)
      */
     public RundeckExecution triggerJob(String jobId, Properties options) throws RundeckApiException,
             RundeckApiLoginException, IllegalArgumentException {
         AssertUtil.notBlank(jobId, "jobId is mandatory to trigger a job !");
-        String apiPath = "/job/" + jobId + "/run?argString=" + ArgsUtil.generateUrlEncodedArgString(options);
-        return new ApiCall(this).get(apiPath, new ExecutionParser("result/executions/execution"));
+        StringBuilder apiPath = new StringBuilder("/job/").append(jobId).append("/run");
+        if (options != null) {
+            apiPath.append("?argString=").append(ArgsUtil.generateUrlEncodedArgString(options));
+        }
+        return new ApiCall(this).get(apiPath.toString(), new ExecutionParser("result/executions/execution"));
     }
 
     /*
