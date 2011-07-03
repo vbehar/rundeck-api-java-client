@@ -75,19 +75,19 @@ public class RundeckExecution implements Serializable {
     }
 
     public Date getStartedAt() {
-        return startedAt;
+        return (startedAt != null) ? new Date(startedAt.getTime()) : null;
     }
 
     public void setStartedAt(Date startedAt) {
-        this.startedAt = startedAt;
+        this.startedAt = ((startedAt != null) ? new Date(startedAt.getTime()) : null);
     }
 
     public Date getEndedAt() {
-        return endedAt;
+        return (endedAt != null) ? new Date(endedAt.getTime()) : null;
     }
 
     public void setEndedAt(Date endedAt) {
-        this.endedAt = endedAt;
+        this.endedAt = ((endedAt != null) ? new Date(endedAt.getTime()) : null);
     }
 
     public String getAbortedBy() {
