@@ -68,6 +68,40 @@ public class RundeckClient implements Serializable {
         new ApiCall(this).testCredentials();
     }
 
+    /*
+     * Projects
+     */
+
+    /**
+     * List all projects
+     * 
+     * @return a {@link List} of {@link RundeckProject} : might be empty, but won't be null
+     * @throws RundeckApiException in case of error when calling the API
+     * @throws RundeckApiLoginException if the login failed
+     */
+    public List<RundeckProject> getProjects() throws RundeckApiException, RundeckApiLoginException {
+        return new ApiCall(this).get("/projects", new ProjectsParser("result/projects/project"));
+    }
+
+    /**
+     * Get the definition of a single project, identified by the given name
+     * 
+     * @param projectName name of the project - mandatory
+     * @return a {@link RundeckProject} instance
+     * @throws RundeckApiException in case of error when calling the API
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the projectName is blank (null, empty or whitespace)
+     */
+    public RundeckProject getProject(String projectName) throws RundeckApiException, RundeckApiLoginException,
+            IllegalArgumentException {
+        AssertUtil.notBlank(projectName, "projectName is mandatory to get the details of a project !");
+        return new ApiCall(this).get("/project/" + projectName, new ProjectParser("result/projects/project"));
+    }
+
+    /*
+     * Jobs
+     */
+
     /**
      * List all jobs that belongs to the given project
      * 
@@ -129,6 +163,28 @@ public class RundeckClient implements Serializable {
     }
 
     /**
+     * Trigger the execution of a RunDeck job (identified by the given ID), and return immediately (without waiting the
+     * end of the job execution)
+     * 
+     * @param jobId identifier of the job - mandatory
+     * @param options of the job - optional
+     * @return a {@link RundeckExecution} instance representing the newly created (and running) execution
+     * @throws RundeckApiException in case of error when calling the API
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the jobId is blank (null, empty or whitespace)
+     */
+    public RundeckExecution triggerJob(String jobId, Properties options) throws RundeckApiException,
+            RundeckApiLoginException, IllegalArgumentException {
+        AssertUtil.notBlank(jobId, "jobId is mandatory to trigger a job !");
+        String apiPath = "/job/" + jobId + "/run?argString=" + ArgsUtil.generateUrlEncodedArgString(options);
+        return new ApiCall(this).get(apiPath, new ExecutionParser("result/executions/execution"));
+    }
+
+    /*
+     * Executions
+     */
+
+    /**
      * Get the executions of the given job
      * 
      * @param jobId identifier of the job - mandatory
@@ -157,50 +213,6 @@ public class RundeckClient implements Serializable {
             IllegalArgumentException {
         AssertUtil.notNull(executionId, "executionId is mandatory to get the details of an execution !");
         return new ApiCall(this).get("/execution/" + executionId, new ExecutionParser("result/executions/execution"));
-    }
-
-    /**
-     * Trigger the execution of a RunDeck job (identified by the given ID), and return immediately (without waiting the
-     * end of the job execution)
-     * 
-     * @param jobId identifier of the job - mandatory
-     * @param options of the job - optional
-     * @return a {@link RundeckExecution} instance representing the newly created (and running) execution
-     * @throws RundeckApiException in case of error when calling the API
-     * @throws RundeckApiLoginException if the login failed
-     * @throws IllegalArgumentException if the jobId is blank (null, empty or whitespace)
-     */
-    public RundeckExecution triggerJob(String jobId, Properties options) throws RundeckApiException,
-            RundeckApiLoginException, IllegalArgumentException {
-        AssertUtil.notBlank(jobId, "jobId is mandatory to trigger a job !");
-        String apiPath = "/job/" + jobId + "/run?argString=" + ArgsUtil.generateUrlEncodedArgString(options);
-        return new ApiCall(this).get(apiPath, new ExecutionParser("result/executions/execution"));
-    }
-
-    /**
-     * List all projects
-     * 
-     * @return a {@link List} of {@link RundeckProject} : might be empty, but won't be null
-     * @throws RundeckApiException in case of error when calling the API
-     * @throws RundeckApiLoginException if the login failed
-     */
-    public List<RundeckProject> getProjects() throws RundeckApiException, RundeckApiLoginException {
-        return new ApiCall(this).get("/projects", new ProjectsParser("result/projects/project"));
-    }
-
-    /**
-     * Get the definition of a single project, identified by the given name
-     * 
-     * @param projectName name of the project - mandatory
-     * @return a {@link RundeckProject} instance
-     * @throws RundeckApiException in case of error when calling the API
-     * @throws RundeckApiLoginException if the login failed
-     * @throws IllegalArgumentException if the projectName is blank (null, empty or whitespace)
-     */
-    public RundeckProject getProject(String projectName) throws RundeckApiException, RundeckApiLoginException,
-            IllegalArgumentException {
-        AssertUtil.notBlank(projectName, "projectName is mandatory to get the details of a project !");
-        return new ApiCall(this).get("/project/" + projectName, new ProjectParser("result/projects/project"));
     }
 
     public String getUrl() {
