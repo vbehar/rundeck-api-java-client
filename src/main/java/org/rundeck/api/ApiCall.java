@@ -198,6 +198,7 @@ class ApiCall {
         try {
             socketFactory = new SSLSocketFactory(new TrustStrategy() {
 
+                @Override
                 public boolean isTrusted(X509Certificate[] chain, String authType) throws CertificateException {
                     return true;
                 }
