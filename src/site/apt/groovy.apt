@@ -1,0 +1,36 @@
+            ------
+            Using the RunDeck API from Groovy scripts
+            ------
+            Vincent Behar
+            ------
+            2011-07-03
+            ------
+
+Using the RunDeck API from Groovy scripts
+
+  Here are some examples of what you can do with this lib and a few lines of {{{http://groovy.codehaus.org/}Groovy}}.
+  We can use {{{http://groovy.codehaus.org/Grape}Grape}} to download the lib (and its dependencies) from the {{{http://search.maven.org/}main maven repository}}, so you don't have to install anything manually (except Groovy, of course).
+
+  <<Note that the lib is NOT in the main maven repository for the moment...>> but hopefully it should be pretty soon !
+
+* Running a job (from its name, group and project)
+
+  Save the following script in a file named "<<<rundeck.groovy>>>", and execute it with "<<<groovy rundeck.groovy>>>". Feeling Groovy ? ;-)
+
++--
+@Grab(group='org.rundeck', module='rundeck-api-java-client', version='1.0-SNAPSHOT')
+import org.rundeck.api.RundeckClient
+
+rundeck = new RundeckClient("http://localhost:4440", "admin", "admin")
+
+job = rundeck.findJob("my-project", "main-group/sub-group", "job-name")
+println "Running job : ${job}"
+
+execution = rundeck.triggerJob(job.id)
+println "Follow the execution at : ${execution.url}"
++--
+
+* And more...
+
+  See the API documentation of the {{{./apidocs/org/rundeck/api/RundeckClient.html}RundeckClient}} class for more interactions with your RunDeck instance...
+

@@ -1,0 +1,47 @@
+            ------
+            Using the RunDeck API from JRuby scripts
+            ------
+            Vincent Behar
+            ------
+            2011-07-03
+            ------
+
+Using the RunDeck API from JRuby scripts
+
+  Here are some examples of what you can do with this lib and a few lines of {{{http://www.jruby.org/}Ruby}} (for the rubyist that don't fear running on the JVM !).
+  You will have to {{{https://github.com/vbehar/rundeck-api-java-client/downloads}download}} the lib (the .jar file) to use it...
+
+* Running a job (from its name, group and project)
+
+  Save the following script in a file named "<<<rundeck.rb>>>", and execute it with "<<<jruby rundeck.rb>>>".
+
++--
+require 'java'
+require '/path/to/rundeck-api-java-client-VERSION-jar-with-dependencies.jar'
+java_import org.rundeck.api.RundeckClient
+
+rundeck = RundeckClient.new("http://localhost:4440", "admin", "admin")
+
+job = rundeck.findJob("my-project", "main-group/sub-group", "job-name")
+puts "Running job : #{job}"
+
+execution = rundeck.triggerJob(job.id)
+puts "Follow the execution at : #{execution.url}"
++--
+
+  You can also extract all the java-related stuff from the script file : save the following script in a file named "<<<rundeck.rb>>>", and execute it with "<<<jruby -rjava -J-cp /path/to/rundeck-api-java-client-VERSION-jar-with-dependencies.jar rundeck.rb>>>".
+
++--
+rundeck = org.rundeck.api.RundeckClient.new("http://localhost:4440", "admin", "admin")
+
+job = rundeck.findJob("my-project", "main-group/sub-group", "job-name")
+puts "Running job : #{job}"
+
+execution = rundeck.triggerJob(job.id)
+puts "Follow the execution at : #{execution.url}"
++-- 
+
+* And more...
+
+  See the API documentation of the {{{./apidocs/org/rundeck/api/RundeckClient.html}RundeckClient}} class for more interactions with your RunDeck instance...
+
