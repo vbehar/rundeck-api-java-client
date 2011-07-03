@@ -28,6 +28,7 @@ import org.dom4j.Document;
 import org.rundeck.api.RundeckApiException.RundeckApiLoginException;
 import org.rundeck.api.parser.NodeParser;
 import org.rundeck.api.parser.ParserHelper;
+import org.rundeck.api.util.AssertUtil;
 
 /**
  * Class responsible for making the HTTP API calls
@@ -42,10 +43,12 @@ class ApiCall {
      * Build a new instance, linked to the given RunDeck client
      * 
      * @param client holding the RunDeck url and the credentials
+     * @throws IllegalArgumentException if client is null
      */
-    public ApiCall(RundeckClient client) {
+    public ApiCall(RundeckClient client) throws IllegalArgumentException {
         super();
         this.client = client;
+        AssertUtil.notNull(client, "The RunDeck Client must not be null !");
     }
 
     /**
