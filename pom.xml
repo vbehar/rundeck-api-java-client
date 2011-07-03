@@ -57,8 +57,8 @@
   </developers>
 
   <properties>
-    <project.build.sourceJdk>1.5</project.build.sourceJdk>
-    <project.build.targetJdk>1.5</project.build.targetJdk>
+    <project.build.sourceJdk>1.6</project.build.sourceJdk>
+    <project.build.targetJdk>1.6</project.build.targetJdk>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
     <!-- Plugins version -->
