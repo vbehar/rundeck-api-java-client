@@ -4,11 +4,13 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang.StringUtils;
 import org.rundeck.api.RundeckApiException.RundeckApiLoginException;
 import org.rundeck.api.domain.RundeckExecution;
 import org.rundeck.api.domain.RundeckJob;
 import org.rundeck.api.domain.RundeckProject;
+import org.rundeck.api.domain.RundeckExecution.ExecutionStatus;
 import org.rundeck.api.parser.ExecutionParser;
 import org.rundeck.api.parser.ExecutionsParser;
 import org.rundeck.api.parser.JobParser;
@@ -208,6 +210,7 @@ public class RundeckClient implements Serializable {
      * @throws RundeckApiLoginException if the login failed
      * @throws IllegalArgumentException if the jobId is blank (null, empty or whitespace)
      * @see #triggerJob(String, Properties)
+     * @see #runJob(String)
      */
     public RundeckExecution triggerJob(String jobId) throws RundeckApiException, RundeckApiLoginException,
             IllegalArgumentException {
@@ -225,6 +228,7 @@ public class RundeckClient implements Serializable {
      * @throws RundeckApiLoginException if the login failed
      * @throws IllegalArgumentException if the jobId is blank (null, empty or whitespace)
      * @see #triggerJob(String)
+     * @see #runJob(String, Properties)
      */
     public RundeckExecution triggerJob(String jobId, Properties options) throws RundeckApiException,
             RundeckApiLoginException, IllegalArgumentException {
@@ -234,6 +238,81 @@ public class RundeckClient implements Serializable {
             apiPath.append("?argString=").append(ArgsUtil.generateUrlEncodedArgString(options));
         }
         return new ApiCall(this).get(apiPath.toString(), new ExecutionParser("result/executions/execution"));
+    }
+
+    /**
+     * Run a RunDeck job (identified by the given ID), and wait until its execution is finished (or aborted) to return.
+     * We will poll the RunDeck server at regular interval (every 5 seconds) to know if the execution is finished (or
+     * aborted) or is still running.
+     * 
+     * @param jobId identifier of the job - mandatory
+     * @return a {@link RundeckExecution} instance for the (finished/aborted) execution - won't be null
+     * @throws RundeckApiException in case of error when calling the API (non-existent job with this ID)
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the jobId is blank (null, empty or whitespace)
+     * @see #triggerJob(String)
+     * @see #runJob(String, Properties, long, TimeUnit)
+     */
+    public RundeckExecution runJob(String jobId) throws RundeckApiException, RundeckApiLoginException,
+            IllegalArgumentException {
+        return runJob(jobId, null);
+    }
+
+    /**
+     * Run a RunDeck job (identified by the given ID), and wait until its execution is finished (or aborted) to return.
+     * We will poll the RunDeck server at regular interval (every 5 seconds) to know if the execution is finished (or
+     * aborted) or is still running.
+     * 
+     * @param jobId identifier of the job - mandatory
+     * @param options of the job - optional
+     * @return a {@link RundeckExecution} instance for the (finished/aborted) execution - won't be null
+     * @throws RundeckApiException in case of error when calling the API (non-existent job with this ID)
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the jobId is blank (null, empty or whitespace)
+     * @see #triggerJob(String, Properties)
+     * @see #runJob(String, Properties, long, TimeUnit)
+     */
+    public RundeckExecution runJob(String jobId, Properties options) throws RundeckApiException,
+            RundeckApiLoginException, IllegalArgumentException {
+        return runJob(jobId, options, 5, TimeUnit.SECONDS);
+    }
+
+    /**
+     * Run a RunDeck job (identified by the given ID), and wait until its execution is finished (or aborted) to return.
+     * We will poll the RunDeck server at regular interval (configured by the poolingInterval/poolingUnit couple) to
+     * know if the execution is finished (or aborted) or is still running.
+     * 
+     * @param jobId identifier of the job - mandatory
+     * @param options of the job - optional
+     * @param poolingInterval for checking the status of the execution. Must be > 0.
+     * @param poolingUnit unit (seconds, milli-seconds, ...) of the interval. Default to seconds.
+     * @return a {@link RundeckExecution} instance for the (finished/aborted) execution - won't be null
+     * @throws RundeckApiException in case of error when calling the API (non-existent job with this ID)
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the jobId is blank (null, empty or whitespace)
+     * @see #triggerJob(String, Properties)
+     * @see #runJob(String, Properties)
+     */
+    public RundeckExecution runJob(String jobId, Properties options, long poolingInterval, TimeUnit poolingUnit)
+            throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException {
+        if (poolingInterval <= 0) {
+            poolingInterval = 5;
+            poolingUnit = TimeUnit.SECONDS;
+        }
+        if (poolingUnit == null) {
+            poolingUnit = TimeUnit.SECONDS;
+        }
+
+        RundeckExecution execution = triggerJob(jobId, options);
+        while (ExecutionStatus.RUNNING.equals(execution.getStatus())) {
+            try {
+                Thread.sleep(poolingUnit.toMillis(poolingInterval));
+            } catch (InterruptedException e) {
+                break;
+            }
+            execution = getExecution(execution.getId());
+        }
+        return execution;
     }
 
     /*
