@@ -19,6 +19,7 @@ import org.rundeck.api.parser.ProjectParser;
 import org.rundeck.api.parser.ProjectsParser;
 import org.rundeck.api.util.ArgsUtil;
 import org.rundeck.api.util.AssertUtil;
+import org.rundeck.api.util.OptionsBuilder;
 
 /**
  * Main entry point to talk to a RunDeck instance
@@ -226,7 +227,7 @@ public class RundeckClient implements Serializable {
      * end of the job execution)
      * 
      * @param jobId identifier of the job - mandatory
-     * @param options of the job - optional
+     * @param options of the job - optional. See {@link OptionsBuilder}.
      * @return a {@link RundeckExecution} instance for the newly created (and running) execution - won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent job with this ID)
      * @throws RundeckApiLoginException if the login failed
@@ -268,7 +269,7 @@ public class RundeckClient implements Serializable {
      * aborted) or is still running.
      * 
      * @param jobId identifier of the job - mandatory
-     * @param options of the job - optional
+     * @param options of the job - optional. See {@link OptionsBuilder}.
      * @return a {@link RundeckExecution} instance for the (finished/aborted) execution - won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent job with this ID)
      * @throws RundeckApiLoginException if the login failed
@@ -287,7 +288,7 @@ public class RundeckClient implements Serializable {
      * know if the execution is finished (or aborted) or is still running.
      * 
      * @param jobId identifier of the job - mandatory
-     * @param options of the job - optional
+     * @param options of the job - optional. See {@link OptionsBuilder}.
      * @param poolingInterval for checking the status of the execution. Must be > 0.
      * @param poolingUnit unit (seconds, milli-seconds, ...) of the interval. Default to seconds.
      * @return a {@link RundeckExecution} instance for the (finished/aborted) execution - won't be null
