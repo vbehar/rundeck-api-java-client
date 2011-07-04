@@ -1,6 +1,7 @@
 package org.rundeck.api;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 import org.apache.commons.lang.StringUtils;
@@ -101,6 +102,21 @@ public class RundeckClient implements Serializable {
     /*
      * Jobs
      */
+
+    /**
+     * List all jobs (for all projects)
+     * 
+     * @return a {@link List} of {@link RundeckJob} : might be empty, but won't be null
+     * @throws RundeckApiException in case of error when calling the API
+     * @throws RundeckApiLoginException if the login failed
+     */
+    public List<RundeckJob> getJobs() throws RundeckApiException, RundeckApiLoginException {
+        List<RundeckJob> jobs = new ArrayList<RundeckJob>();
+        for (RundeckProject project : getProjects()) {
+            jobs.addAll(getJobs(project.getName()));
+        }
+        return jobs;
+    }
 
     /**
      * List all jobs that belongs to the given project
