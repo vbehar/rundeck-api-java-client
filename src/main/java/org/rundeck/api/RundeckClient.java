@@ -45,12 +45,16 @@ public class RundeckClient implements Serializable {
      * @param url of the RunDeck instance ("http://localhost:4440", "http://rundeck.your-compagny.com/", etc)
      * @param login
      * @param password
+     * @throws IllegalArgumentException if the url, login or password is blank (null, empty or whitespace)
      */
-    public RundeckClient(String url, String login, String password) {
+    public RundeckClient(String url, String login, String password) throws IllegalArgumentException {
         super();
         this.url = url;
         this.login = login;
         this.password = password;
+        AssertUtil.notBlank(url, "The RunDeck URL is mandatory !");
+        AssertUtil.notBlank(login, "The RunDeck login is mandatory !");
+        AssertUtil.notBlank(password, "The RunDeck password is mandatory !");
     }
 
     /**
