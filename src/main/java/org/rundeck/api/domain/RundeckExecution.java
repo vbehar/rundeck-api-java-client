@@ -73,6 +73,9 @@ public class RundeckExecution implements Serializable {
         this.url = url;
     }
 
+    /**
+     * @return the status of the execution - see {@link ExecutionStatus}
+     */
     public ExecutionStatus getStatus() {
         return status;
     }
@@ -81,6 +84,10 @@ public class RundeckExecution implements Serializable {
         this.status = status;
     }
 
+    /**
+     * @return the {@link RundeckJob} associated with this execution, or null in the case of an ad-hoc execution
+     *         (command or script)
+     */
     public RundeckJob getJob() {
         return job;
     }
