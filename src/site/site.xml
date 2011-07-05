@@ -4,14 +4,23 @@
          xsi:schemaLocation="http://maven.apache.org/DECORATION/1.1.0 http://maven.apache.org/xsd/decoration-1.1.0.xsd"
          name="${project.name}">
   <googleAnalyticsAccountId>UA-23435653-1</googleAnalyticsAccountId>
+  <publishDate position="right" />
+  <version position="right" />
   <body>
+    <breadcrumbs>
+      <item name="RunDeck" href="http://rundeck.org" />
+      <item name="RunDeck API - Java Client" href="./" />
+    </breadcrumbs>
     <menu name="${project.name}">
       <item name="Introduction" href="index.html" />
+      <item name="Download" href="download.html" />
       <item name="API Documentation" href="apidocs/index.html" />
     </menu>
     <menu name="Scripting examples">
+      <item name="Introduction" href="scripting.html" />
       <item name="Groovy" href="groovy.html" />
       <item name="JRuby" href="jruby.html" />
+      <item name="Jython" href="jython.html" />
     </menu>
     <menu ref="reports" />
   </body>
