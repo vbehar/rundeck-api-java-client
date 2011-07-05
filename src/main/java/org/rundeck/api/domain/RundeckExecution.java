@@ -131,9 +131,9 @@ public class RundeckExecution implements Serializable {
 
     @Override
     public String toString() {
-        return "RundeckExecution [abortedBy=" + abortedBy + ", description=" + description + ", endedAt=" + endedAt
-               + ", id=" + id + ", job=" + job + ", startedAt=" + startedAt + ", startedBy=" + startedBy + ", status="
-               + status + ", url=" + url + "]";
+        return "RundeckExecution [id=" + id + ", description=" + description + ", url=" + url + ", status=" + status
+               + ", startedBy=" + startedBy + ", startedAt=" + startedAt + ", endedAt=" + endedAt
+               + ", durationInSeconds=" + getDurationInSeconds() + ", abortedBy=" + abortedBy + ", job=" + job + "]";
     }
 
     @Override
