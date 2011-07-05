@@ -548,6 +548,22 @@ public class RundeckClient implements Serializable {
      */
 
     /**
+     * Get the running executions for the given project
+     * 
+     * @param project name of the project - mandatory
+     * @return a {@link List} of {@link RundeckExecution} : might be empty, but won't be null
+     * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the project is blank (null, empty or whitespace)
+     */
+    public List<RundeckExecution> getRunningExecutions(String project) throws RundeckApiException,
+            RundeckApiLoginException, IllegalArgumentException {
+        AssertUtil.notBlank(project, "project is mandatory to trigger an ad-hoc command !");
+        return new ApiCall(this).get("/executions/running?project=" + project,
+                                     new ExecutionsParser("result/executions/execution"));
+    }
+
+    /**
      * Get the executions of the given job
      * 
      * @param jobId identifier of the job - mandatory
