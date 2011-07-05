@@ -46,26 +46,32 @@
 <a class="jxr_linenumber" name="36" href="#36">36</a>  
 <a class="jxr_linenumber" name="37" href="#37">37</a>          execution.setId(Long.valueOf(execNode.valueOf(<span class="jxr_string">"@id"</span>)));
 <a class="jxr_linenumber" name="38" href="#38">38</a>          execution.setUrl(StringUtils.trimToNull(execNode.valueOf(<span class="jxr_string">"@href"</span>)));
-<a class="jxr_linenumber" name="39" href="#39">39</a>          execution.setStatus(ExecutionStatus.valueOf(StringUtils.upperCase(execNode.valueOf(<span class="jxr_string">"@status"</span>))));
-<a class="jxr_linenumber" name="40" href="#40">40</a>          execution.setDescription(StringUtils.trimToNull(execNode.valueOf(<span class="jxr_string">"description"</span>)));
-<a class="jxr_linenumber" name="41" href="#41">41</a>          execution.setStartedBy(StringUtils.trimToNull(execNode.valueOf(<span class="jxr_string">"user"</span>)));
-<a class="jxr_linenumber" name="42" href="#42">42</a>          execution.setStartedAt(<strong class="jxr_keyword">new</strong> Date(Long.valueOf(execNode.valueOf(<span class="jxr_string">"date-started/@unixtime"</span>))));
-<a class="jxr_linenumber" name="43" href="#43">43</a>          execution.setAbortedBy(StringUtils.trimToNull(execNode.valueOf(<span class="jxr_string">"abortedby"</span>)));
-<a class="jxr_linenumber" name="44" href="#44">44</a>          String endedAt = StringUtils.trimToNull(execNode.valueOf(<span class="jxr_string">"date-ended/@unixtime"</span>));
-<a class="jxr_linenumber" name="45" href="#45">45</a>          <strong class="jxr_keyword">if</strong> (endedAt != <strong class="jxr_keyword">null</strong>) {
-<a class="jxr_linenumber" name="46" href="#46">46</a>              execution.setEndedAt(<strong class="jxr_keyword">new</strong> Date(Long.valueOf(endedAt)));
-<a class="jxr_linenumber" name="47" href="#47">47</a>          }
-<a class="jxr_linenumber" name="48" href="#48">48</a>  
-<a class="jxr_linenumber" name="49" href="#49">49</a>          Node jobNode = execNode.selectSingleNode(<span class="jxr_string">"job"</span>);
-<a class="jxr_linenumber" name="50" href="#50">50</a>          <strong class="jxr_keyword">if</strong> (jobNode != <strong class="jxr_keyword">null</strong>) {
-<a class="jxr_linenumber" name="51" href="#51">51</a>              <a href="../../../../org/rundeck/api/domain/RundeckJob.html">RundeckJob</a> job = <strong class="jxr_keyword">new</strong> <a href="../../../../org/rundeck/api/parser/JobParser.html">JobParser</a>().parseNode(jobNode);
-<a class="jxr_linenumber" name="52" href="#52">52</a>              execution.setJob(job);
+<a class="jxr_linenumber" name="39" href="#39">39</a>          <strong class="jxr_keyword">try</strong> {
+<a class="jxr_linenumber" name="40" href="#40">40</a>              execution.setStatus(ExecutionStatus.valueOf(StringUtils.upperCase(execNode.valueOf(<span class="jxr_string">"@status"</span>))));
+<a class="jxr_linenumber" name="41" href="#41">41</a>          } <strong class="jxr_keyword">catch</strong> (IllegalArgumentException e) {
+<a class="jxr_linenumber" name="42" href="#42">42</a>          }
+<a class="jxr_linenumber" name="43" href="#43">43</a>          execution.setDescription(StringUtils.trimToNull(execNode.valueOf(<span class="jxr_string">"description"</span>)));
+<a class="jxr_linenumber" name="44" href="#44">44</a>          execution.setStartedBy(StringUtils.trimToNull(execNode.valueOf(<span class="jxr_string">"user"</span>)));
+<a class="jxr_linenumber" name="45" href="#45">45</a>          execution.setAbortedBy(StringUtils.trimToNull(execNode.valueOf(<span class="jxr_string">"abortedby"</span>)));
+<a class="jxr_linenumber" name="46" href="#46">46</a>          String startedAt = StringUtils.trimToNull(execNode.valueOf(<span class="jxr_string">"date-started/@unixtime"</span>));
+<a class="jxr_linenumber" name="47" href="#47">47</a>          <strong class="jxr_keyword">if</strong> (startedAt != <strong class="jxr_keyword">null</strong>) {
+<a class="jxr_linenumber" name="48" href="#48">48</a>              execution.setStartedAt(<strong class="jxr_keyword">new</strong> Date(Long.valueOf(startedAt)));
+<a class="jxr_linenumber" name="49" href="#49">49</a>          }
+<a class="jxr_linenumber" name="50" href="#50">50</a>          String endedAt = StringUtils.trimToNull(execNode.valueOf(<span class="jxr_string">"date-ended/@unixtime"</span>));
+<a class="jxr_linenumber" name="51" href="#51">51</a>          <strong class="jxr_keyword">if</strong> (endedAt != <strong class="jxr_keyword">null</strong>) {
+<a class="jxr_linenumber" name="52" href="#52">52</a>              execution.setEndedAt(<strong class="jxr_keyword">new</strong> Date(Long.valueOf(endedAt)));
 <a class="jxr_linenumber" name="53" href="#53">53</a>          }
 <a class="jxr_linenumber" name="54" href="#54">54</a>  
-<a class="jxr_linenumber" name="55" href="#55">55</a>          <strong class="jxr_keyword">return</strong> execution;
-<a class="jxr_linenumber" name="56" href="#56">56</a>      }
-<a class="jxr_linenumber" name="57" href="#57">57</a>  
-<a class="jxr_linenumber" name="58" href="#58">58</a>  }
+<a class="jxr_linenumber" name="55" href="#55">55</a>          Node jobNode = execNode.selectSingleNode(<span class="jxr_string">"job"</span>);
+<a class="jxr_linenumber" name="56" href="#56">56</a>          <strong class="jxr_keyword">if</strong> (jobNode != <strong class="jxr_keyword">null</strong>) {
+<a class="jxr_linenumber" name="57" href="#57">57</a>              <a href="../../../../org/rundeck/api/domain/RundeckJob.html">RundeckJob</a> job = <strong class="jxr_keyword">new</strong> <a href="../../../../org/rundeck/api/parser/JobParser.html">JobParser</a>().parseNode(jobNode);
+<a class="jxr_linenumber" name="58" href="#58">58</a>              execution.setJob(job);
+<a class="jxr_linenumber" name="59" href="#59">59</a>          }
+<a class="jxr_linenumber" name="60" href="#60">60</a>  
+<a class="jxr_linenumber" name="61" href="#61">61</a>          <strong class="jxr_keyword">return</strong> execution;
+<a class="jxr_linenumber" name="62" href="#62">62</a>      }
+<a class="jxr_linenumber" name="63" href="#63">63</a>  
+<a class="jxr_linenumber" name="64" href="#64">64</a>  }
 </pre>
 <hr/><div id="footer">This page was automatically generated by <a href="http://maven.apache.org/">Maven</a></div></body>
 </html>

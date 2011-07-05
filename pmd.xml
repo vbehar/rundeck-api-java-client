@@ -1,3 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<pmd version="4.2.5" timestamp="2011-07-03T23:10:19.996">
+<pmd version="4.2.5" timestamp="2011-07-05T19:02:51.082">
+<file name="/home/vinz/projects/perso/rundeck/rundeck-api-java-client/src/main/java/org/rundeck/api/parser/ExecutionParser.java">
+<violation beginline="41" endline="42" begincolumn="11" endcolumn="9" rule="EmptyCatchBlock" ruleset="Basic Rules" package="org.rundeck.api.parser" class="ExecutionParser" method="parseNode" externalInfoUrl="http://pmd.sourceforge.net/rules/basic.html#EmptyCatchBlock" priority="3">
+Avoid empty catch blocks
+</violation>
+</file>
 </pmd>
