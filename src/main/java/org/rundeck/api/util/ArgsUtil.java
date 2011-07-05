@@ -28,7 +28,7 @@ public class ArgsUtil {
         }
 
         try {
-            return URLEncoder.encode(argString, "UTF8");
+            return URLEncoder.encode(argString, "UTF-8");
         } catch (UnsupportedEncodingException e) {
             throw new RuntimeException(e);
         }
