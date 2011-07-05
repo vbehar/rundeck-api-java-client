@@ -215,7 +215,7 @@ public class RundeckClient implements Serializable {
      * @throws RundeckApiException in case of error when calling the API (non-existent job with this ID)
      * @throws RundeckApiLoginException if the login failed
      * @throws IllegalArgumentException if the jobId is blank (null, empty or whitespace)
-     * @see #triggerJob(String, Properties)
+     * @see #triggerJob(String, Properties, Properties)
      * @see #runJob(String)
      */
     public RundeckExecution triggerJob(String jobId) throws RundeckApiException, RundeckApiLoginException,
@@ -233,16 +233,40 @@ public class RundeckClient implements Serializable {
      * @throws RundeckApiException in case of error when calling the API (non-existent job with this ID)
      * @throws RundeckApiLoginException if the login failed
      * @throws IllegalArgumentException if the jobId is blank (null, empty or whitespace)
-     * @see #triggerJob(String)
+     * @see #triggerJob(String, Properties, Properties)
      * @see #runJob(String, Properties)
      */
     public RundeckExecution triggerJob(String jobId, Properties options) throws RundeckApiException,
             RundeckApiLoginException, IllegalArgumentException {
+        return triggerJob(jobId, options, null);
+    }
+
+    /**
+     * Trigger the execution of a RunDeck job (identified by the given ID), and return immediately (without waiting the
+     * end of the job execution)
+     * 
+     * @param jobId identifier of the job - mandatory
+     * @param options of the job - optional. See {@link OptionsBuilder}.
+     * @param nodeFilters for overriding the nodes on which the job will be executed - optional. See
+     *            {@link NodeFiltersBuilder}
+     * @return a {@link RundeckExecution} instance for the newly created (and running) execution - won't be null
+     * @throws RundeckApiException in case of error when calling the API (non-existent job with this ID)
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the jobId is blank (null, empty or whitespace)
+     * @see #triggerJob(String)
+     * @see #runJob(String, Properties, Properties)
+     */
+    public RundeckExecution triggerJob(String jobId, Properties options, Properties nodeFilters)
+            throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException {
         AssertUtil.notBlank(jobId, "jobId is mandatory to trigger a job !");
-        StringBuilder apiPath = new StringBuilder("/job/").append(jobId).append("/run");
+        StringBuilder apiPath = new StringBuilder("/job/").append(jobId).append("/run?");
         String argString = ParametersUtil.generateArgString(options);
         if (StringUtils.isNotBlank(argString)) {
-            apiPath.append("?argString=").append(ParametersUtil.urlEncode(argString));
+            apiPath.append("argString=").append(ParametersUtil.urlEncode(argString)).append("&");
+        }
+        String filters = ParametersUtil.generateNodeFiltersString(nodeFilters);
+        if (StringUtils.isNotBlank(filters)) {
+            apiPath.append(filters);
         }
         return new ApiCall(this).get(apiPath.toString(), new ExecutionParser("result/executions/execution"));
     }
@@ -258,7 +282,7 @@ public class RundeckClient implements Serializable {
      * @throws RundeckApiLoginException if the login failed
      * @throws IllegalArgumentException if the jobId is blank (null, empty or whitespace)
      * @see #triggerJob(String)
-     * @see #runJob(String, Properties, long, TimeUnit)
+     * @see #runJob(String, Properties, Properties, long, TimeUnit)
      */
     public RundeckExecution runJob(String jobId) throws RundeckApiException, RundeckApiLoginException,
             IllegalArgumentException {
@@ -277,11 +301,32 @@ public class RundeckClient implements Serializable {
      * @throws RundeckApiLoginException if the login failed
      * @throws IllegalArgumentException if the jobId is blank (null, empty or whitespace)
      * @see #triggerJob(String, Properties)
-     * @see #runJob(String, Properties, long, TimeUnit)
+     * @see #runJob(String, Properties, Properties, long, TimeUnit)
      */
     public RundeckExecution runJob(String jobId, Properties options) throws RundeckApiException,
             RundeckApiLoginException, IllegalArgumentException {
-        return runJob(jobId, options, 5, TimeUnit.SECONDS);
+        return runJob(jobId, options, null);
+    }
+
+    /**
+     * Run a RunDeck job (identified by the given ID), and wait until its execution is finished (or aborted) to return.
+     * We will poll the RunDeck server at regular interval (every 5 seconds) to know if the execution is finished (or
+     * aborted) or is still running.
+     * 
+     * @param jobId identifier of the job - mandatory
+     * @param options of the job - optional. See {@link OptionsBuilder}.
+     * @param nodeFilters for overriding the nodes on which the job will be executed - optional. See
+     *            {@link NodeFiltersBuilder}
+     * @return a {@link RundeckExecution} instance for the (finished/aborted) execution - won't be null
+     * @throws RundeckApiException in case of error when calling the API (non-existent job with this ID)
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the jobId is blank (null, empty or whitespace)
+     * @see #triggerJob(String, Properties, Properties)
+     * @see #runJob(String, Properties, Properties, long, TimeUnit)
+     */
+    public RundeckExecution runJob(String jobId, Properties options, Properties nodeFilters)
+            throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException {
+        return runJob(jobId, options, nodeFilters, 5, TimeUnit.SECONDS);
     }
 
     /**
@@ -298,10 +343,33 @@ public class RundeckClient implements Serializable {
      * @throws RundeckApiLoginException if the login failed
      * @throws IllegalArgumentException if the jobId is blank (null, empty or whitespace)
      * @see #triggerJob(String, Properties)
-     * @see #runJob(String, Properties)
+     * @see #runJob(String, Properties, Properties, long, TimeUnit)
      */
     public RundeckExecution runJob(String jobId, Properties options, long poolingInterval, TimeUnit poolingUnit)
             throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException {
+        return runJob(jobId, options, null, poolingInterval, poolingUnit);
+    }
+
+    /**
+     * Run a RunDeck job (identified by the given ID), and wait until its execution is finished (or aborted) to return.
+     * We will poll the RunDeck server at regular interval (configured by the poolingInterval/poolingUnit couple) to
+     * know if the execution is finished (or aborted) or is still running.
+     * 
+     * @param jobId identifier of the job - mandatory
+     * @param options of the job - optional. See {@link OptionsBuilder}.
+     * @param nodeFilters for overriding the nodes on which the job will be executed - optional. See
+     *            {@link NodeFiltersBuilder}
+     * @param poolingInterval for checking the status of the execution. Must be > 0.
+     * @param poolingUnit unit (seconds, milli-seconds, ...) of the interval. Default to seconds.
+     * @return a {@link RundeckExecution} instance for the (finished/aborted) execution - won't be null
+     * @throws RundeckApiException in case of error when calling the API (non-existent job with this ID)
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the jobId is blank (null, empty or whitespace)
+     * @see #triggerJob(String, Properties)
+     * @see #runJob(String, Properties, Properties, long, TimeUnit)
+     */
+    public RundeckExecution runJob(String jobId, Properties options, Properties nodeFilters, long poolingInterval,
+            TimeUnit poolingUnit) throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException {
         if (poolingInterval <= 0) {
             poolingInterval = 5;
             poolingUnit = TimeUnit.SECONDS;
@@ -310,7 +378,7 @@ public class RundeckClient implements Serializable {
             poolingUnit = TimeUnit.SECONDS;
         }
 
-        RundeckExecution execution = triggerJob(jobId, options);
+        RundeckExecution execution = triggerJob(jobId, options, nodeFilters);
         while (ExecutionStatus.RUNNING.equals(execution.getStatus())) {
             try {
                 Thread.sleep(poolingUnit.toMillis(poolingInterval));
@@ -337,6 +405,7 @@ public class RundeckClient implements Serializable {
      * @throws RundeckApiLoginException if the login failed
      * @throws IllegalArgumentException if the project or command is blank (null, empty or whitespace)
      * @see #triggerAdhocCommand(String, String, Properties)
+     * @see #runAdhocCommand(String, String)
      */
     public RundeckExecution triggerAdhocCommand(String project, String command) throws RundeckApiException,
             RundeckApiLoginException, IllegalArgumentException {
@@ -355,6 +424,7 @@ public class RundeckClient implements Serializable {
      * @throws RundeckApiLoginException if the login failed
      * @throws IllegalArgumentException if the project or command is blank (null, empty or whitespace)
      * @see #triggerAdhocCommand(String, String)
+     * @see #runAdhocCommand(String, String, Properties)
      */
     public RundeckExecution triggerAdhocCommand(String project, String command, Properties nodeFilters)
             throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException {
@@ -383,6 +453,8 @@ public class RundeckClient implements Serializable {
      * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
      * @throws RundeckApiLoginException if the login failed
      * @throws IllegalArgumentException if the project or command is blank (null, empty or whitespace)
+     * @see #runAdhocCommand(String, String, Properties, long, TimeUnit)
+     * @see #triggerAdhocCommand(String, String)
      */
     public RundeckExecution runAdhocCommand(String project, String command) throws RundeckApiException,
             RundeckApiLoginException, IllegalArgumentException {
@@ -403,6 +475,8 @@ public class RundeckClient implements Serializable {
      * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
      * @throws RundeckApiLoginException if the login failed
      * @throws IllegalArgumentException if the project or command is blank (null, empty or whitespace)
+     * @see #runAdhocCommand(String, String, Properties, long, TimeUnit)
+     * @see #triggerAdhocCommand(String, String)
      */
     public RundeckExecution runAdhocCommand(String project, String command, long poolingInterval, TimeUnit poolingUnit)
             throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException {
@@ -421,6 +495,8 @@ public class RundeckClient implements Serializable {
      * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
      * @throws RundeckApiLoginException if the login failed
      * @throws IllegalArgumentException if the project or command is blank (null, empty or whitespace)
+     * @see #runAdhocCommand(String, String, Properties, long, TimeUnit)
+     * @see #triggerAdhocCommand(String, String, Properties)
      */
     public RundeckExecution runAdhocCommand(String project, String command, Properties nodeFilters)
             throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException {
@@ -442,6 +518,7 @@ public class RundeckClient implements Serializable {
      * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
      * @throws RundeckApiLoginException if the login failed
      * @throws IllegalArgumentException if the project or command is blank (null, empty or whitespace)
+     * @see #triggerAdhocCommand(String, String, Properties)
      */
     public RundeckExecution runAdhocCommand(String project, String command, Properties nodeFilters,
             long poolingInterval, TimeUnit poolingUnit) throws RundeckApiException, RundeckApiLoginException,
