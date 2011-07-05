@@ -64,4 +64,44 @@ public class ExecutionParserTest {
         Assert.assertEquals("list files", job.getDescription());
     }
 
+    @Test
+    public void parseAdhocNode() throws Exception {
+        InputStream input = getClass().getResourceAsStream("execution-adhoc.xml");
+        Document document = ParserHelper.loadDocument(input);
+
+        RundeckExecution execution = new ExecutionParser("result/executions/execution").parseNode(document);
+        RundeckJob job = execution.getJob();
+
+        Assert.assertEquals(new Long(1), execution.getId());
+        Assert.assertEquals("http://localhost:4440/execution/follow/1", execution.getUrl());
+        Assert.assertEquals(ExecutionStatus.SUCCEEDED, execution.getStatus());
+        Assert.assertEquals("admin", execution.getStartedBy());
+        Assert.assertEquals(new Date(1309857539137L), execution.getStartedAt());
+        Assert.assertEquals(new Date(1309857539606L), execution.getEndedAt());
+        Assert.assertEquals(null, execution.getAbortedBy());
+        Assert.assertEquals("w", execution.getDescription());
+
+        Assert.assertNull(job);
+    }
+
+    @Test
+    public void parseMinimalistNode() throws Exception {
+        InputStream input = getClass().getResourceAsStream("execution-minimalist.xml");
+        Document document = ParserHelper.loadDocument(input);
+
+        RundeckExecution execution = new ExecutionParser("result/execution").parseNode(document);
+        RundeckJob job = execution.getJob();
+
+        Assert.assertEquals(new Long(1), execution.getId());
+        Assert.assertNull(execution.getUrl());
+        Assert.assertNull(execution.getStatus());
+        Assert.assertNull(execution.getStartedBy());
+        Assert.assertNull(execution.getStartedAt());
+        Assert.assertNull(execution.getEndedAt());
+        Assert.assertNull(execution.getAbortedBy());
+        Assert.assertNull(execution.getDescription());
+
+        Assert.assertNull(job);
+    }
+
 }

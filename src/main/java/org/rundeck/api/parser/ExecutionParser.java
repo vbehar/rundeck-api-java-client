@@ -36,11 +36,17 @@ public class ExecutionParser implements NodeParser<RundeckExecution> {
 
         execution.setId(Long.valueOf(execNode.valueOf("@id")));
         execution.setUrl(StringUtils.trimToNull(execNode.valueOf("@href")));
-        execution.setStatus(ExecutionStatus.valueOf(StringUtils.upperCase(execNode.valueOf("@status"))));
+        try {
+            execution.setStatus(ExecutionStatus.valueOf(StringUtils.upperCase(execNode.valueOf("@status"))));
+        } catch (IllegalArgumentException e) {
+        }
         execution.setDescription(StringUtils.trimToNull(execNode.valueOf("description")));
         execution.setStartedBy(StringUtils.trimToNull(execNode.valueOf("user")));
-        execution.setStartedAt(new Date(Long.valueOf(execNode.valueOf("date-started/@unixtime"))));
         execution.setAbortedBy(StringUtils.trimToNull(execNode.valueOf("abortedby")));
+        String startedAt = StringUtils.trimToNull(execNode.valueOf("date-started/@unixtime"));
+        if (startedAt != null) {
+            execution.setStartedAt(new Date(Long.valueOf(startedAt)));
+        }
         String endedAt = StringUtils.trimToNull(execNode.valueOf("date-ended/@unixtime"));
         if (endedAt != null) {
             execution.setEndedAt(new Date(Long.valueOf(endedAt)));

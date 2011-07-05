@@ -17,9 +17,10 @@ import org.rundeck.api.parser.JobParser;
 import org.rundeck.api.parser.JobsParser;
 import org.rundeck.api.parser.ProjectParser;
 import org.rundeck.api.parser.ProjectsParser;
-import org.rundeck.api.util.ArgsUtil;
 import org.rundeck.api.util.AssertUtil;
+import org.rundeck.api.util.NodeFiltersBuilder;
 import org.rundeck.api.util.OptionsBuilder;
+import org.rundeck.api.util.ParametersUtil;
 
 /**
  * Main entry point to talk to a RunDeck instance
@@ -239,8 +240,9 @@ public class RundeckClient implements Serializable {
             RundeckApiLoginException, IllegalArgumentException {
         AssertUtil.notBlank(jobId, "jobId is mandatory to trigger a job !");
         StringBuilder apiPath = new StringBuilder("/job/").append(jobId).append("/run");
-        if (options != null) {
-            apiPath.append("?argString=").append(ArgsUtil.generateUrlEncodedArgString(options));
+        String argString = ParametersUtil.generateArgString(options);
+        if (StringUtils.isNotBlank(argString)) {
+            apiPath.append("?argString=").append(ParametersUtil.urlEncode(argString));
         }
         return new ApiCall(this).get(apiPath.toString(), new ExecutionParser("result/executions/execution"));
     }
@@ -309,6 +311,150 @@ public class RundeckClient implements Serializable {
         }
 
         RundeckExecution execution = triggerJob(jobId, options);
+        while (ExecutionStatus.RUNNING.equals(execution.getStatus())) {
+            try {
+                Thread.sleep(poolingUnit.toMillis(poolingInterval));
+            } catch (InterruptedException e) {
+                break;
+            }
+            execution = getExecution(execution.getId());
+        }
+        return execution;
+    }
+
+    /*
+     * Ad-hoc executions
+     */
+
+    /**
+     * Trigger the execution of an ad-hoc command, and return immediately (without waiting the end of the execution).
+     * The command will not be dispatched to nodes, but be executed on the RunDeck server.
+     * 
+     * @param project name of the project - mandatory
+     * @param command to be executed - mandatory
+     * @return a {@link RundeckExecution} instance for the newly created (and running) execution - won't be null
+     * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the project or command is blank (null, empty or whitespace)
+     * @see #triggerAdhocCommand(String, String, Properties)
+     */
+    public RundeckExecution triggerAdhocCommand(String project, String command) throws RundeckApiException,
+            RundeckApiLoginException, IllegalArgumentException {
+        return triggerAdhocCommand(project, command, null);
+    }
+
+    /**
+     * Trigger the execution of an ad-hoc command, and return immediately (without waiting the end of the execution).
+     * The command will be dispatched to nodes, accordingly to the nodeFilters parameter.
+     * 
+     * @param project name of the project - mandatory
+     * @param command to be executed - mandatory
+     * @param nodeFilters for selecting nodes on which the command will be executed. See {@link NodeFiltersBuilder}
+     * @return a {@link RundeckExecution} instance for the newly created (and running) execution - won't be null
+     * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the project or command is blank (null, empty or whitespace)
+     * @see #triggerAdhocCommand(String, String)
+     */
+    public RundeckExecution triggerAdhocCommand(String project, String command, Properties nodeFilters)
+            throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException {
+        AssertUtil.notBlank(project, "project is mandatory to trigger an ad-hoc command !");
+        AssertUtil.notBlank(command, "command is mandatory to trigger an ad-hoc command !");
+        StringBuilder apiPath = new StringBuilder("/run/command");
+        apiPath.append("?project=").append(project);
+        apiPath.append("&exec=").append(ParametersUtil.urlEncode(command));
+        String filters = ParametersUtil.generateNodeFiltersString(nodeFilters);
+        if (StringUtils.isNotBlank(filters)) {
+            apiPath.append("&").append(filters);
+        }
+        RundeckExecution execution = new ApiCall(this).get(apiPath.toString(), new ExecutionParser("result/execution"));
+        // the first call just returns the ID of the execution, so we need another call to get a "real" execution
+        return getExecution(execution.getId());
+    }
+
+    /**
+     * Run an ad-hoc command, and wait until its execution is finished (or aborted) to return. We will poll the RunDeck
+     * server at regular interval (every 5 seconds) to know if the execution is finished (or aborted) or is still
+     * running. The command will not be dispatched to nodes, but be executed on the RunDeck server.
+     * 
+     * @param project name of the project - mandatory
+     * @param command to be executed - mandatory
+     * @return a {@link RundeckExecution} instance for the (finished/aborted) execution - won't be null
+     * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the project or command is blank (null, empty or whitespace)
+     */
+    public RundeckExecution runAdhocCommand(String project, String command) throws RundeckApiException,
+            RundeckApiLoginException, IllegalArgumentException {
+        return runAdhocCommand(project, command, null);
+    }
+
+    /**
+     * Run an ad-hoc command, and wait until its execution is finished (or aborted) to return. We will poll the RunDeck
+     * server at regular interval (configured by the poolingInterval/poolingUnit couple) to know if the execution is
+     * finished (or aborted) or is still running. The command will not be dispatched to nodes, but be executed on the
+     * RunDeck server.
+     * 
+     * @param project name of the project - mandatory
+     * @param command to be executed - mandatory
+     * @param poolingInterval for checking the status of the execution. Must be > 0.
+     * @param poolingUnit unit (seconds, milli-seconds, ...) of the interval. Default to seconds.
+     * @return a {@link RundeckExecution} instance for the (finished/aborted) execution - won't be null
+     * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the project or command is blank (null, empty or whitespace)
+     */
+    public RundeckExecution runAdhocCommand(String project, String command, long poolingInterval, TimeUnit poolingUnit)
+            throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException {
+        return runAdhocCommand(project, command, null, poolingInterval, poolingUnit);
+    }
+
+    /**
+     * Run an ad-hoc command, and wait until its execution is finished (or aborted) to return. We will poll the RunDeck
+     * server at regular interval (every 5 seconds) to know if the execution is finished (or aborted) or is still
+     * running. The command will be dispatched to nodes, accordingly to the nodeFilters parameter.
+     * 
+     * @param project name of the project - mandatory
+     * @param command to be executed - mandatory
+     * @param nodeFilters for selecting nodes on which the command will be executed. See {@link NodeFiltersBuilder}
+     * @return a {@link RundeckExecution} instance for the (finished/aborted) execution - won't be null
+     * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the project or command is blank (null, empty or whitespace)
+     */
+    public RundeckExecution runAdhocCommand(String project, String command, Properties nodeFilters)
+            throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException {
+        return runAdhocCommand(project, command, nodeFilters, 5, TimeUnit.SECONDS);
+    }
+
+    /**
+     * Run an ad-hoc command, and wait until its execution is finished (or aborted) to return. We will poll the RunDeck
+     * server at regular interval (configured by the poolingInterval/poolingUnit couple) to know if the execution is
+     * finished (or aborted) or is still running. The command will be dispatched to nodes, accordingly to the
+     * nodeFilters parameter.
+     * 
+     * @param project name of the project - mandatory
+     * @param command to be executed - mandatory
+     * @param nodeFilters for selecting nodes on which the command will be executed. See {@link NodeFiltersBuilder}
+     * @param poolingInterval for checking the status of the execution. Must be > 0.
+     * @param poolingUnit unit (seconds, milli-seconds, ...) of the interval. Default to seconds.
+     * @return a {@link RundeckExecution} instance for the (finished/aborted) execution - won't be null
+     * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the project or command is blank (null, empty or whitespace)
+     */
+    public RundeckExecution runAdhocCommand(String project, String command, Properties nodeFilters,
+            long poolingInterval, TimeUnit poolingUnit) throws RundeckApiException, RundeckApiLoginException,
+            IllegalArgumentException {
+        if (poolingInterval <= 0) {
+            poolingInterval = 5;
+            poolingUnit = TimeUnit.SECONDS;
+        }
+        if (poolingUnit == null) {
+            poolingUnit = TimeUnit.SECONDS;
+        }
+
+        RundeckExecution execution = triggerAdhocCommand(project, command, nodeFilters);
         while (ExecutionStatus.RUNNING.equals(execution.getStatus())) {
             try {
                 Thread.sleep(poolingUnit.toMillis(poolingInterval));

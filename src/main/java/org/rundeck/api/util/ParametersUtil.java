@@ -2,33 +2,31 @@ package org.rundeck.api.util;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 import java.util.Map.Entry;
 import org.apache.commons.lang.StringUtils;
 
 /**
- * Utility class for RunDeck arguments
+ * Utility class for API parameters that should be passed in URLs.
  * 
  * @author Vincent Behar
  */
-public class ArgsUtil {
+public class ParametersUtil {
 
     /**
-     * Generates and url-encode a RunDeck "argString" representing the given options. Format of the argString is
-     * <code>"-key1 value1 -key2 'value 2 with spaces'"</code>
+     * URL-encode the given string
      * 
-     * @param options to be converted
-     * @return an url-encoded string. null if options is null, empty if there are no valid options.
-     * @see #generateArgString(Properties)
+     * @param input string to be encoded
+     * @return an url-encoded string
      */
-    public static String generateUrlEncodedArgString(Properties options) {
-        String argString = generateArgString(options);
-        if (StringUtils.isBlank(argString)) {
-            return argString;
+    public static String urlEncode(String input) {
+        if (StringUtils.isBlank(input)) {
+            return input;
         }
-
         try {
-            return URLEncoder.encode(argString, "UTF-8");
+            return URLEncoder.encode(input, "UTF-8");
         } catch (UnsupportedEncodingException e) {
             throw new RuntimeException(e);
         }
@@ -36,11 +34,10 @@ public class ArgsUtil {
 
     /**
      * Generates a RunDeck "argString" representing the given options. Format of the argString is
-     * <code>"-key1 value1 -key2 'value 2 with spaces'"</code>
+     * <code>"-key1 value1 -key2 'value 2 with spaces'"</code>. You might want to url-encode this string...
      * 
      * @param options to be converted
      * @return a string. null if options is null, empty if there are no valid options.
-     * @see #generateUrlEncodedArgString(Properties)
      */
     public static String generateArgString(Properties options) {
         if (options == null) {
@@ -67,6 +64,34 @@ public class ArgsUtil {
             }
         }
         return argString.toString();
+    }
+
+    /**
+     * Generates an url-encoded string representing the given nodeFilters. Format of the string is
+     * <code>"filter1=value1&filter2=value2"</code>.
+     * 
+     * @param nodeFilters to be converted
+     * @return an url-encoded string. null if nodeFilters is null, empty if there are no valid filters.
+     */
+    public static String generateNodeFiltersString(Properties nodeFilters) {
+        if (nodeFilters == null) {
+            return null;
+        }
+
+        List<String> filters = new ArrayList<String>();
+        for (Entry<Object, Object> filter : nodeFilters.entrySet()) {
+            String key = String.valueOf(filter.getKey());
+            String value = String.valueOf(filter.getValue());
+
+            if (StringUtils.isNotBlank(key) && StringUtils.isNotBlank(value)) {
+                try {
+                    filters.add(URLEncoder.encode(key, "UTF-8") + "=" + URLEncoder.encode(value, "UTF-8"));
+                } catch (UnsupportedEncodingException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+        return StringUtils.join(filters, "&");
     }
 
 }
