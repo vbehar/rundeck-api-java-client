@@ -323,7 +323,7 @@ public class RundeckClient implements Serializable {
     }
 
     /*
-     * Ad-hoc executions
+     * Ad-hoc commands
      */
 
     /**
