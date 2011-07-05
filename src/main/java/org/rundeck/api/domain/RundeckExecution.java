@@ -2,6 +2,7 @@ package org.rundeck.api.domain;
 
 import java.io.Serializable;
 import java.util.Date;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Represents a RunDeck execution, usually triggered by an API call. An execution could be a {@link RundeckJob}
@@ -33,6 +34,28 @@ public class RundeckExecution implements Serializable {
     private String abortedBy;
 
     private String description;
+
+    /**
+     * @return the duration of the execution in milliseconds (or null if the duration is still running, or has been
+     *         aborted)
+     */
+    public Long getDurationInMillis() {
+        if (startedAt == null || endedAt == null) {
+            return null;
+        }
+        return endedAt.getTime() - startedAt.getTime();
+    }
+
+    /**
+     * @return the duration of the execution in seconds (or null if the duration is still running, or has been aborted)
+     */
+    public Long getDurationInSeconds() {
+        Long durationInMillis = getDurationInMillis();
+        if (durationInMillis == null) {
+            return null;
+        }
+        return TimeUnit.MILLISECONDS.toSeconds(durationInMillis);
+    }
 
     public Long getId() {
         return id;
