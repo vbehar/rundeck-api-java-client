@@ -16,4 +16,5 @@ h2. Where can I get more information ?
 
 * You can read the [API documentation|./apidocs/index.html], starting with the [RundeckClient|./apidocs/org/rundeck/api/RundeckClient.html] class.
 * And the code is available on [GitHub|https://github.com/vbehar/rundeck-api-java-client].
+* The Maven auto-generated pages : [project information|./project-info.html] and [project reports|./project-reports.html].
 
