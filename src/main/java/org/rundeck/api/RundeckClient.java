@@ -24,19 +24,16 @@ import org.apache.commons.lang.StringUtils;
 import org.rundeck.api.RundeckApiException.RundeckApiLoginException;
 import org.rundeck.api.domain.RundeckAbort;
 import org.rundeck.api.domain.RundeckExecution;
+import org.rundeck.api.domain.RundeckExecution.ExecutionStatus;
 import org.rundeck.api.domain.RundeckJob;
 import org.rundeck.api.domain.RundeckNode;
 import org.rundeck.api.domain.RundeckProject;
-import org.rundeck.api.domain.RundeckExecution.ExecutionStatus;
 import org.rundeck.api.parser.AbortParser;
 import org.rundeck.api.parser.ExecutionParser;
-import org.rundeck.api.parser.ExecutionsParser;
 import org.rundeck.api.parser.JobParser;
-import org.rundeck.api.parser.JobsParser;
+import org.rundeck.api.parser.ListParser;
 import org.rundeck.api.parser.NodeParser;
-import org.rundeck.api.parser.NodesParser;
 import org.rundeck.api.parser.ProjectParser;
-import org.rundeck.api.parser.ProjectsParser;
 import org.rundeck.api.util.AssertUtil;
 import org.rundeck.api.util.ParametersUtil;
 
@@ -120,7 +117,8 @@ public class RundeckClient implements Serializable {
      * @throws RundeckApiLoginException if the login failed
      */
     public List<RundeckProject> getProjects() throws RundeckApiException, RundeckApiLoginException {
-        return new ApiCall(this).get(new ApiPathBuilder("/projects"), new ProjectsParser("result/projects/project"));
+        return new ApiCall(this).get(new ApiPathBuilder("/projects"),
+                                     new ListParser<RundeckProject>(new ProjectParser(), "result/projects/project"));
     }
 
     /**
@@ -193,7 +191,7 @@ public class RundeckClient implements Serializable {
                                                                 .param("jobFilter", jobFilter)
                                                                 .param("groupPath", groupPath)
                                                                 .param("idlist", StringUtils.join(jobIds, ",")),
-                                     new JobsParser("result/jobs/job"));
+                                     new ListParser<RundeckJob>(new JobParser(), "result/jobs/job"));
     }
 
     /**
@@ -590,7 +588,8 @@ public class RundeckClient implements Serializable {
             RundeckApiLoginException, IllegalArgumentException {
         AssertUtil.notBlank(project, "project is mandatory get all running executions !");
         return new ApiCall(this).get(new ApiPathBuilder("/executions/running").param("project", project),
-                                     new ExecutionsParser("result/executions/execution"));
+                                     new ListParser<RundeckExecution>(new ExecutionParser(),
+                                                                      "result/executions/execution"));
     }
 
     /**
@@ -641,7 +640,8 @@ public class RundeckClient implements Serializable {
                                                                                              status != null ? StringUtils.lowerCase(status.toString()) : null)
                                                                                       .param("max", max)
                                                                                       .param("offset", offset),
-                                     new ExecutionsParser("result/executions/execution"));
+                                     new ListParser<RundeckExecution>(new ExecutionParser(),
+                                                                      "result/executions/execution"));
     }
 
     /**
@@ -725,7 +725,7 @@ public class RundeckClient implements Serializable {
         AssertUtil.notBlank(project, "project is mandatory to get all nodes !");
         return new ApiCall(this).get(new ApiPathBuilder("/resources").param("project", project)
                                                                      .nodeFilters(nodeFilters),
-                                     new NodesParser("project/node"));
+                                     new ListParser<RundeckNode>(new NodeParser(), "project/node"));
     }
 
     /**

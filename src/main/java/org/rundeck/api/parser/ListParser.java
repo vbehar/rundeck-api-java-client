@@ -18,38 +18,41 @@ package org.rundeck.api.parser;
 import java.util.ArrayList;
 import java.util.List;
 import org.dom4j.Node;
-import org.rundeck.api.domain.RundeckProject;
 
 /**
- * Parser for a {@link List} of {@link RundeckProject}
+ * Parser for a {@link List} of elements
  * 
  * @author Vincent Behar
  */
-public class ProjectsParser implements XmlNodeParser<List<RundeckProject>> {
+public class ListParser<T> implements XmlNodeParser<List<T>> {
+
+    private final XmlNodeParser<T> parser;
 
     private final String xpath;
 
     /**
-     * @param xpath of the projects elements
+     * @param parser for an individual element
+     * @param xpath of the elements
      */
-    public ProjectsParser(String xpath) {
+    public ListParser(XmlNodeParser<T> parser, String xpath) {
         super();
+        this.parser = parser;
         this.xpath = xpath;
     }
 
     @Override
-    public List<RundeckProject> parseXmlNode(Node node) {
-        List<RundeckProject> projects = new ArrayList<RundeckProject>();
+    public List<T> parseXmlNode(Node node) {
+        List<T> elements = new ArrayList<T>();
 
         @SuppressWarnings("unchecked")
-        List<Node> projectNodes = node.selectNodes(xpath);
+        List<Node> elementNodes = node.selectNodes(xpath);
 
-        for (Node projectNode : projectNodes) {
-            RundeckProject project = new ProjectParser().parseXmlNode(projectNode);
-            projects.add(project);
+        for (Node elementNode : elementNodes) {
+            T element = parser.parseXmlNode(elementNode);
+            elements.add(element);
         }
 
-        return projects;
+        return elements;
     }
 
 }
