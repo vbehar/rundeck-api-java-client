@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<pmd version="4.2.5" timestamp="2011-07-06T19:29:55.588">
+<pmd version="4.2.5" timestamp="2011-07-06T22:59:41.029">
 <file name="/home/vinz/projects/perso/rundeck/rundeck-api-java-client/src/main/java/org/rundeck/api/parser/AbortParser.java">
 <violation beginline="53" endline="54" begincolumn="11" endcolumn="9" rule="EmptyCatchBlock" ruleset="Basic Rules" package="org.rundeck.api.parser" class="AbortParser" method="parseXmlNode" externalInfoUrl="http://pmd.sourceforge.net/rules/basic.html#EmptyCatchBlock" priority="3">
 Avoid empty catch blocks
