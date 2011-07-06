@@ -548,6 +548,21 @@ public class RundeckClient implements Serializable {
      */
 
     /**
+     * Get all running executions (for all projects)
+     * 
+     * @return a {@link List} of {@link RundeckExecution} : might be empty, but won't be null
+     * @throws RundeckApiException in case of error when calling the API
+     * @throws RundeckApiLoginException if the login failed
+     */
+    public List<RundeckExecution> getRunningExecutions() throws RundeckApiException, RundeckApiLoginException {
+        List<RundeckExecution> executions = new ArrayList<RundeckExecution>();
+        for (RundeckProject project : getProjects()) {
+            executions.addAll(getRunningExecutions(project.getName()));
+        }
+        return executions;
+    }
+
+    /**
      * Get the running executions for the given project
      * 
      * @param project name of the project - mandatory
