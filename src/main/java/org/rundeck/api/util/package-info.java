@@ -15,6 +15,6 @@
  */
 
 /**
- * Some utility classes, and builders that can be used by clients of the API.
+ * Some utility classes.
  */
 package org.rundeck.api.util;

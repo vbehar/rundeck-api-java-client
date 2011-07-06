@@ -22,8 +22,8 @@ h2. Running a job
 
 {code}
 from org.rundeck.api import RundeckClient
-from org.rundeck.api.util import OptionsBuilder
-from org.rundeck.api.util import NodeFiltersBuilder
+from org.rundeck.api import OptionsBuilder
+from org.rundeck.api import NodeFiltersBuilder
 
 rundeck = RundeckClient("http://localhost:4440", "admin", "admin")
 
@@ -50,7 +50,7 @@ h2. Running an ad-hoc command
 
 {code}
 from org.rundeck.api import RundeckClient
-from org.rundeck.api.util import NodeFiltersBuilder
+from org.rundeck.api import NodeFiltersBuilder
 
 rundeck = RundeckClient("http://localhost:4440", "admin", "admin")
 

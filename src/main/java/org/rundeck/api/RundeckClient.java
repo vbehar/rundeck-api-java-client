@@ -33,8 +33,6 @@ import org.rundeck.api.parser.JobsParser;
 import org.rundeck.api.parser.ProjectParser;
 import org.rundeck.api.parser.ProjectsParser;
 import org.rundeck.api.util.AssertUtil;
-import org.rundeck.api.util.NodeFiltersBuilder;
-import org.rundeck.api.util.OptionsBuilder;
 import org.rundeck.api.util.ParametersUtil;
 
 /**
