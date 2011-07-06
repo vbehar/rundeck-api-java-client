@@ -104,13 +104,13 @@ class ApiCall {
      * Execute an HTTP GET request to the RunDeck instance, on the given path. We will login first, and then execute the
      * API call. At the end, the given parser will be used to convert the response to a more useful result object.
      * 
-     * @param apiPath on which we will make the HTTP request
+     * @param apiPath on which we will make the HTTP request - see {@link ApiPathBuilder}
      * @param parser used to parse the response
      * @return the result of the call, as formatted by the parser
      * @throws RundeckApiException in case of error when calling the API
      * @throws RundeckApiLoginException if the login fails
      */
-    public <T> T get(String apiPath, NodeParser<T> parser) throws RundeckApiException, RundeckApiLoginException {
+    public <T> T get(ApiPathBuilder apiPath, NodeParser<T> parser) throws RundeckApiException, RundeckApiLoginException {
         String apiUrl = client.getUrl() + RundeckClient.API_ENDPOINT + apiPath;
 
         HttpClient httpClient = instantiateHttpClient();
