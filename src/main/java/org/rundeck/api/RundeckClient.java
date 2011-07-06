@@ -38,7 +38,20 @@ import org.rundeck.api.util.OptionsBuilder;
 import org.rundeck.api.util.ParametersUtil;
 
 /**
- * Main entry point to talk to a RunDeck instance
+ * Main entry point to talk to a RunDeck instance.<br>
+ * Usage : <br>
+ * <code>
+ * <pre>
+ * RundeckClient rundeck = new RundeckClient("http://localhost:4440", "admin", "admin");
+ * List&lt;RundeckJob&gt; jobs = rundeck.getJobs();
+ * 
+ * RundeckJob job = rundeck.findJob("my-project", "main-group/sub-group", "job-name");
+ * RundeckExecution execution = rundeck.triggerJob(job.getId(),
+ *                                                 new OptionsBuilder().addOption("version", "1.2.0").toProperties());
+ * 
+ * List&lt;RundeckExecution&gt; runningExecutions = rundeck.getRunningExecutions("my-project");
+ * </pre>
+ * </code>
  * 
  * @author Vincent Behar
  */
