@@ -22,6 +22,7 @@ rundeck = new RundeckClient("http://localhost:4440", "admin", "admin")
 
 println "All RunDeck projects : ${rundeck.projects}"
 println "All RunDeck jobs : ${rundeck.jobs}"
+println "All RunDeck running executions : ${rundeck.runningExecutions}"
 {code}
 
 You can also [download|./download.html] the lib and all its dependencies in 1 big jar file, and add it to your classpath before running your script : save the following script in a file named "{{rundeck.groovy}}", and execute it with "{{groovy -cp /path/to/rundeck-api-java-client-VERSION-jar-with-dependencies.jar rundeck.groovy}}".
@@ -33,6 +34,7 @@ rundeck = new RundeckClient("http://localhost:4440", "admin", "admin")
 
 println "All RunDeck projects : ${rundeck.projects}"
 println "All RunDeck jobs : ${rundeck.jobs}"
+println "All RunDeck running executions : ${rundeck.runningExecutions}"
 {code}
 
 h2. Running a job

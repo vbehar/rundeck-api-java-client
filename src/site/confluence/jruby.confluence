@@ -18,6 +18,7 @@ rundeck = RundeckClient.new("http://localhost:4440", "admin", "admin")
 
 puts "All RunDeck projects : #{rundeck.projects}"
 puts "All RunDeck jobs : #{rundeck.jobs}"
+puts "All RunDeck running executions : #{rundeck.runningExecutions}"
 {code}
 
 You can also add the librairie to the classpath : save the following script in a file named "{{rundeck.rb}}", and execute it with "{{jruby -rjava -J-cp /path/to/rundeck-api-java-client-VERSION-jar-with-dependencies.jar rundeck.rb}}".
@@ -29,6 +30,7 @@ rundeck = RundeckClient.new("http://localhost:4440", "admin", "admin")
 
 puts "All RunDeck projects : #{rundeck.projects}"
 puts "All RunDeck jobs : #{rundeck.jobs}"
+puts "All RunDeck running executions : #{rundeck.runningExecutions}"
 {code}
 
 h2. Running a job
