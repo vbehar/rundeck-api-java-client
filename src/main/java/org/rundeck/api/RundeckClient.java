@@ -22,10 +22,12 @@ import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang.StringUtils;
 import org.rundeck.api.RundeckApiException.RundeckApiLoginException;
+import org.rundeck.api.domain.RundeckAbort;
 import org.rundeck.api.domain.RundeckExecution;
 import org.rundeck.api.domain.RundeckJob;
 import org.rundeck.api.domain.RundeckProject;
 import org.rundeck.api.domain.RundeckExecution.ExecutionStatus;
+import org.rundeck.api.parser.AbortParser;
 import org.rundeck.api.parser.ExecutionParser;
 import org.rundeck.api.parser.ExecutionsParser;
 import org.rundeck.api.parser.JobParser;
@@ -653,6 +655,22 @@ public class RundeckClient implements Serializable {
         AssertUtil.notNull(executionId, "executionId is mandatory to get the details of an execution !");
         return new ApiCall(this).get(new ApiPathBuilder("/execution/", executionId.toString()),
                                      new ExecutionParser("result/executions/execution"));
+    }
+
+    /**
+     * Abort an execution (identified by the given ID). The execution should be running...
+     * 
+     * @param executionId identifier of the execution - mandatory
+     * @return a {@link RundeckAbort} instance - won't be null
+     * @throws RundeckApiException in case of error when calling the API (non-existent execution with this ID)
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the executionId is null
+     */
+    public RundeckAbort abortExecution(Long executionId) throws RundeckApiException, RundeckApiLoginException,
+            IllegalArgumentException {
+        AssertUtil.notNull(executionId, "executionId is mandatory to abort an execution !");
+        return new ApiCall(this).get(new ApiPathBuilder("/execution/", executionId.toString(), "/abort"),
+                                     new AbortParser("result/abort"));
     }
 
     public String getUrl() {
