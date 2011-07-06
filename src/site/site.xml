@@ -29,6 +29,7 @@
     <menu name="${project.name}">
       <item name="Introduction" href="index.html" />
       <item name="Download" href="download.html" />
+      <item name="FAQ" href="faq.html" />
       <item name="API Documentation" href="apidocs/index.html" />
     </menu>
     <menu name="Scripting examples">
