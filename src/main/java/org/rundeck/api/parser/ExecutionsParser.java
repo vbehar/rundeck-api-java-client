@@ -25,7 +25,7 @@ import org.rundeck.api.domain.RundeckExecution;
  * 
  * @author Vincent Behar
  */
-public class ExecutionsParser implements NodeParser<List<RundeckExecution>> {
+public class ExecutionsParser implements XmlNodeParser<List<RundeckExecution>> {
 
     private final String xpath;
 
@@ -38,14 +38,14 @@ public class ExecutionsParser implements NodeParser<List<RundeckExecution>> {
     }
 
     @Override
-    public List<RundeckExecution> parseNode(Node node) {
+    public List<RundeckExecution> parseXmlNode(Node node) {
         List<RundeckExecution> executions = new ArrayList<RundeckExecution>();
 
         @SuppressWarnings("unchecked")
         List<Node> execNodes = node.selectNodes(xpath);
 
         for (Node execNode : execNodes) {
-            RundeckExecution execution = new ExecutionParser().parseNode(execNode);
+            RundeckExecution execution = new ExecutionParser().parseXmlNode(execNode);
             executions.add(execution);
         }
 

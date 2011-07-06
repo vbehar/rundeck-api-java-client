@@ -32,11 +32,11 @@ import org.rundeck.api.domain.RundeckExecution.ExecutionStatus;
 public class AbortParserTest {
 
     @Test
-    public void parsePendingNode() throws Exception {
+    public void parsePendingAbort() throws Exception {
         InputStream input = getClass().getResourceAsStream("abort-pending.xml");
         Document document = ParserHelper.loadDocument(input);
 
-        RundeckAbort abort = new AbortParser("result/abort").parseNode(document);
+        RundeckAbort abort = new AbortParser("result/abort").parseXmlNode(document);
         RundeckExecution execution = abort.getExecution();
 
         Assert.assertEquals(AbortStatus.PENDING, abort.getStatus());
@@ -46,11 +46,11 @@ public class AbortParserTest {
     }
 
     @Test
-    public void parseFailedNode() throws Exception {
+    public void parseFailedAbort() throws Exception {
         InputStream input = getClass().getResourceAsStream("abort-failed.xml");
         Document document = ParserHelper.loadDocument(input);
 
-        RundeckAbort abort = new AbortParser("result/abort").parseNode(document);
+        RundeckAbort abort = new AbortParser("result/abort").parseXmlNode(document);
         RundeckExecution execution = abort.getExecution();
 
         Assert.assertEquals(AbortStatus.FAILED, abort.getStatus());

@@ -27,7 +27,7 @@ import org.rundeck.api.domain.RundeckExecution.ExecutionStatus;
  * 
  * @author Vincent Behar
  */
-public class ExecutionParser implements NodeParser<RundeckExecution> {
+public class ExecutionParser implements XmlNodeParser<RundeckExecution> {
 
     private String xpath;
 
@@ -44,7 +44,7 @@ public class ExecutionParser implements NodeParser<RundeckExecution> {
     }
 
     @Override
-    public RundeckExecution parseNode(Node node) {
+    public RundeckExecution parseXmlNode(Node node) {
         Node execNode = xpath != null ? node.selectSingleNode(xpath) : node;
 
         RundeckExecution execution = new RundeckExecution();
@@ -69,7 +69,7 @@ public class ExecutionParser implements NodeParser<RundeckExecution> {
 
         Node jobNode = execNode.selectSingleNode("job");
         if (jobNode != null) {
-            RundeckJob job = new JobParser().parseNode(jobNode);
+            RundeckJob job = new JobParser().parseXmlNode(jobNode);
             execution.setJob(job);
         }
 

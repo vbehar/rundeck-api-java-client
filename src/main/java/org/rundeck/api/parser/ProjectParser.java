@@ -24,7 +24,7 @@ import org.rundeck.api.domain.RundeckProject;
  * 
  * @author Vincent Behar
  */
-public class ProjectParser implements NodeParser<RundeckProject> {
+public class ProjectParser implements XmlNodeParser<RundeckProject> {
 
     private String xpath;
 
@@ -41,7 +41,7 @@ public class ProjectParser implements NodeParser<RundeckProject> {
     }
 
     @Override
-    public RundeckProject parseNode(Node node) {
+    public RundeckProject parseXmlNode(Node node) {
         Node projectNode = xpath != null ? node.selectSingleNode(xpath) : node;
 
         RundeckProject project = new RundeckProject();

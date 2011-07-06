@@ -26,7 +26,7 @@ import org.rundeck.api.domain.RundeckAbort.AbortStatus;
  * 
  * @author Vincent Behar
  */
-public class AbortParser implements NodeParser<RundeckAbort> {
+public class AbortParser implements XmlNodeParser<RundeckAbort> {
 
     private String xpath;
 
@@ -43,7 +43,7 @@ public class AbortParser implements NodeParser<RundeckAbort> {
     }
 
     @Override
-    public RundeckAbort parseNode(Node node) {
+    public RundeckAbort parseXmlNode(Node node) {
         Node abortNode = xpath != null ? node.selectSingleNode(xpath) : node;
 
         RundeckAbort abort = new RundeckAbort();
@@ -55,7 +55,7 @@ public class AbortParser implements NodeParser<RundeckAbort> {
 
         Node execNode = abortNode.selectSingleNode("execution");
         if (execNode != null) {
-            RundeckExecution execution = new ExecutionParser().parseNode(execNode);
+            RundeckExecution execution = new ExecutionParser().parseXmlNode(execNode);
             abort.setExecution(execution);
         }
 

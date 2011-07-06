@@ -29,11 +29,11 @@ import org.rundeck.api.domain.RundeckJob;
 public class JobParserTest {
 
     @Test
-    public void parseNode() throws Exception {
+    public void parseJob() throws Exception {
         InputStream input = getClass().getResourceAsStream("job.xml");
         Document document = ParserHelper.loadDocument(input);
 
-        RundeckJob job = new JobParser("joblist/job").parseNode(document);
+        RundeckJob job = new JobParser("joblist/job").parseXmlNode(document);
 
         Assert.assertEquals("1", job.getId());
         Assert.assertEquals("job-name", job.getName());

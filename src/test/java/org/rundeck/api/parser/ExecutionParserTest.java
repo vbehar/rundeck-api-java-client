@@ -32,11 +32,11 @@ import org.rundeck.api.domain.RundeckExecution.ExecutionStatus;
 public class ExecutionParserTest {
 
     @Test
-    public void parseRunningNode() throws Exception {
+    public void parseRunningExecution() throws Exception {
         InputStream input = getClass().getResourceAsStream("execution-running.xml");
         Document document = ParserHelper.loadDocument(input);
 
-        RundeckExecution execution = new ExecutionParser("result/executions/execution").parseNode(document);
+        RundeckExecution execution = new ExecutionParser("result/executions/execution").parseXmlNode(document);
         RundeckJob job = execution.getJob();
 
         Assert.assertEquals(new Long(1), execution.getId());
@@ -56,11 +56,11 @@ public class ExecutionParserTest {
     }
 
     @Test
-    public void parseSucceededNode() throws Exception {
+    public void parseSucceededExecution() throws Exception {
         InputStream input = getClass().getResourceAsStream("execution-succeeded.xml");
         Document document = ParserHelper.loadDocument(input);
 
-        RundeckExecution execution = new ExecutionParser("result/executions/execution").parseNode(document);
+        RundeckExecution execution = new ExecutionParser("result/executions/execution").parseXmlNode(document);
         RundeckJob job = execution.getJob();
 
         Assert.assertEquals(new Long(1), execution.getId());
@@ -80,11 +80,11 @@ public class ExecutionParserTest {
     }
 
     @Test
-    public void parseAdhocNode() throws Exception {
+    public void parseAdhocExecution() throws Exception {
         InputStream input = getClass().getResourceAsStream("execution-adhoc.xml");
         Document document = ParserHelper.loadDocument(input);
 
-        RundeckExecution execution = new ExecutionParser("result/executions/execution").parseNode(document);
+        RundeckExecution execution = new ExecutionParser("result/executions/execution").parseXmlNode(document);
         RundeckJob job = execution.getJob();
 
         Assert.assertEquals(new Long(1), execution.getId());
@@ -100,11 +100,11 @@ public class ExecutionParserTest {
     }
 
     @Test
-    public void parseMinimalistNode() throws Exception {
+    public void parseMinimalistExecution() throws Exception {
         InputStream input = getClass().getResourceAsStream("execution-minimalist.xml");
         Document document = ParserHelper.loadDocument(input);
 
-        RundeckExecution execution = new ExecutionParser("result/execution").parseNode(document);
+        RundeckExecution execution = new ExecutionParser("result/execution").parseXmlNode(document);
         RundeckJob job = execution.getJob();
 
         Assert.assertEquals(new Long(1), execution.getId());

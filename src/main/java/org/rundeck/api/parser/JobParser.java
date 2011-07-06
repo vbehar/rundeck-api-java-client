@@ -24,7 +24,7 @@ import org.rundeck.api.domain.RundeckJob;
  * 
  * @author Vincent Behar
  */
-public class JobParser implements NodeParser<RundeckJob> {
+public class JobParser implements XmlNodeParser<RundeckJob> {
 
     private String xpath;
 
@@ -41,7 +41,7 @@ public class JobParser implements NodeParser<RundeckJob> {
     }
 
     @Override
-    public RundeckJob parseNode(Node node) {
+    public RundeckJob parseXmlNode(Node node) {
         Node jobNode = xpath != null ? node.selectSingleNode(xpath) : node;
 
         RundeckJob job = new RundeckJob();

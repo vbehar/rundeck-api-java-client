@@ -41,7 +41,7 @@ import org.apache.http.protocol.HTTP;
 import org.apache.http.util.EntityUtils;
 import org.dom4j.Document;
 import org.rundeck.api.RundeckApiException.RundeckApiLoginException;
-import org.rundeck.api.parser.NodeParser;
+import org.rundeck.api.parser.XmlNodeParser;
 import org.rundeck.api.parser.ParserHelper;
 import org.rundeck.api.util.AssertUtil;
 
@@ -110,7 +110,7 @@ class ApiCall {
      * @throws RundeckApiException in case of error when calling the API
      * @throws RundeckApiLoginException if the login fails
      */
-    public <T> T get(ApiPathBuilder apiPath, NodeParser<T> parser) throws RundeckApiException, RundeckApiLoginException {
+    public <T> T get(ApiPathBuilder apiPath, XmlNodeParser<T> parser) throws RundeckApiException, RundeckApiLoginException {
         String apiUrl = client.getUrl() + RundeckClient.API_ENDPOINT + apiPath;
 
         HttpClient httpClient = instantiateHttpClient();
@@ -134,7 +134,7 @@ class ApiCall {
 
             // read and parse the response
             Document xmlDocument = ParserHelper.loadDocument(response);
-            T result = parser.parseNode(xmlDocument);
+            T result = parser.parseXmlNode(xmlDocument);
 
             // release the connection
             try {

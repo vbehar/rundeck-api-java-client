@@ -18,38 +18,38 @@ package org.rundeck.api.parser;
 import java.util.ArrayList;
 import java.util.List;
 import org.dom4j.Node;
-import org.rundeck.api.domain.RundeckProject;
+import org.rundeck.api.domain.RundeckNode;
 
 /**
- * Parser for a {@link List} of {@link RundeckProject}
+ * Parser for a {@link List} of {@link RundeckNode}
  * 
  * @author Vincent Behar
  */
-public class ProjectsParser implements XmlNodeParser<List<RundeckProject>> {
+public class NodesParser implements XmlNodeParser<List<RundeckNode>> {
 
     private final String xpath;
 
     /**
-     * @param xpath of the projects elements
+     * @param xpath of the rundeck-nodes elements
      */
-    public ProjectsParser(String xpath) {
+    public NodesParser(String xpath) {
         super();
         this.xpath = xpath;
     }
 
     @Override
-    public List<RundeckProject> parseXmlNode(Node node) {
-        List<RundeckProject> projects = new ArrayList<RundeckProject>();
+    public List<RundeckNode> parseXmlNode(Node node) {
+        List<RundeckNode> rundeckNodes = new ArrayList<RundeckNode>();
 
         @SuppressWarnings("unchecked")
-        List<Node> projectNodes = node.selectNodes(xpath);
+        List<Node> rundeckNodeNodes = node.selectNodes(xpath);
 
-        for (Node projectNode : projectNodes) {
-            RundeckProject project = new ProjectParser().parseXmlNode(projectNode);
-            projects.add(project);
+        for (Node rundeckNodeNode : rundeckNodeNodes) {
+            RundeckNode rundeckNode = new NodeParser().parseXmlNode(rundeckNodeNode);
+            rundeckNodes.add(rundeckNode);
         }
 
-        return projects;
+        return rundeckNodes;
     }
 
 }

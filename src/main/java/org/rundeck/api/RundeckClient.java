@@ -25,6 +25,7 @@ import org.rundeck.api.RundeckApiException.RundeckApiLoginException;
 import org.rundeck.api.domain.RundeckAbort;
 import org.rundeck.api.domain.RundeckExecution;
 import org.rundeck.api.domain.RundeckJob;
+import org.rundeck.api.domain.RundeckNode;
 import org.rundeck.api.domain.RundeckProject;
 import org.rundeck.api.domain.RundeckExecution.ExecutionStatus;
 import org.rundeck.api.parser.AbortParser;
@@ -32,6 +33,8 @@ import org.rundeck.api.parser.ExecutionParser;
 import org.rundeck.api.parser.ExecutionsParser;
 import org.rundeck.api.parser.JobParser;
 import org.rundeck.api.parser.JobsParser;
+import org.rundeck.api.parser.NodeParser;
+import org.rundeck.api.parser.NodesParser;
 import org.rundeck.api.parser.ProjectParser;
 import org.rundeck.api.parser.ProjectsParser;
 import org.rundeck.api.util.AssertUtil;
@@ -585,7 +588,7 @@ public class RundeckClient implements Serializable {
      */
     public List<RundeckExecution> getRunningExecutions(String project) throws RundeckApiException,
             RundeckApiLoginException, IllegalArgumentException {
-        AssertUtil.notBlank(project, "project is mandatory to trigger an ad-hoc command !");
+        AssertUtil.notBlank(project, "project is mandatory get all running executions !");
         return new ApiCall(this).get(new ApiPathBuilder("/executions/running").param("project", project),
                                      new ExecutionsParser("result/executions/execution"));
     }
@@ -671,6 +674,76 @@ public class RundeckClient implements Serializable {
         AssertUtil.notNull(executionId, "executionId is mandatory to abort an execution !");
         return new ApiCall(this).get(new ApiPathBuilder("/execution/", executionId.toString(), "/abort"),
                                      new AbortParser("result/abort"));
+    }
+
+    /*
+     * Nodes
+     */
+
+    /**
+     * List all nodes (for all projects)
+     * 
+     * @return a {@link List} of {@link RundeckNode} : might be empty, but won't be null
+     * @throws RundeckApiException in case of error when calling the API
+     * @throws RundeckApiLoginException if the login failed
+     */
+    public List<RundeckNode> getNodes() throws RundeckApiException, RundeckApiLoginException {
+        List<RundeckNode> nodes = new ArrayList<RundeckNode>();
+        for (RundeckProject project : getProjects()) {
+            nodes.addAll(getNodes(project.getName()));
+        }
+        return nodes;
+    }
+
+    /**
+     * List all nodes that belongs to the given project
+     * 
+     * @param project name of the project - mandatory
+     * @return a {@link List} of {@link RundeckNode} : might be empty, but won't be null
+     * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the project is blank (null, empty or whitespace)
+     * @see #getNodes(String, Properties)
+     */
+    public List<RundeckNode> getNodes(String project) throws RundeckApiException, RundeckApiLoginException,
+            IllegalArgumentException {
+        return getNodes(project, null);
+    }
+
+    /**
+     * List nodes that belongs to the given project
+     * 
+     * @param project name of the project - mandatory
+     * @param nodeFilters for filtering the nodes - optional. See {@link NodeFiltersBuilder}
+     * @return a {@link List} of {@link RundeckNode} : might be empty, but won't be null
+     * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the project is blank (null, empty or whitespace)
+     */
+    public List<RundeckNode> getNodes(String project, Properties nodeFilters) throws RundeckApiException,
+            RundeckApiLoginException, IllegalArgumentException {
+        AssertUtil.notBlank(project, "project is mandatory to get all nodes !");
+        return new ApiCall(this).get(new ApiPathBuilder("/resources").param("project", project)
+                                                                     .nodeFilters(nodeFilters),
+                                     new NodesParser("project/node"));
+    }
+
+    /**
+     * Get the definition of a single node
+     * 
+     * @param name of the node - mandatory
+     * @param project name of the project - mandatory
+     * @return a {@link RundeckNode} instance - won't be null
+     * @throws RundeckApiException in case of error when calling the API (non-existent name or project with this name)
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the name or project is blank (null, empty or whitespace)
+     */
+    public RundeckNode getNode(String name, String project) throws RundeckApiException, RundeckApiLoginException,
+            IllegalArgumentException {
+        AssertUtil.notBlank(name, "the name of the node is mandatory to get a node !");
+        AssertUtil.notBlank(project, "project is mandatory to get a node !");
+        return new ApiCall(this).get(new ApiPathBuilder("/resource/", name).param("project", project),
+                                     new NodeParser("project/node"));
     }
 
     public String getUrl() {

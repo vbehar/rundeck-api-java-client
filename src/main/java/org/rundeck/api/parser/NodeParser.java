@@ -15,21 +15,54 @@
  */
 package org.rundeck.api.parser;
 
+import java.util.Arrays;
+import org.apache.commons.lang.StringUtils;
 import org.dom4j.Node;
+import org.rundeck.api.domain.RundeckNode;
 
 /**
- * Interface to be implemented for parsers that handle XML {@link Node}s
+ * Parser for a single {@link RundeckNode}
  * 
  * @author Vincent Behar
  */
-public interface NodeParser<T> {
+public class NodeParser implements XmlNodeParser<RundeckNode> {
+
+    private String xpath;
+
+    public NodeParser() {
+        super();
+    }
 
     /**
-     * Parse the given XML {@link Node}
-     * 
-     * @param node
-     * @return any object holding the converted value
+     * @param xpath of the rundeck-node element if it is not the root xml-node
      */
-    T parseNode(Node node);
+    public NodeParser(String xpath) {
+        super();
+        this.xpath = xpath;
+    }
+
+    @Override
+    public RundeckNode parseXmlNode(Node node) {
+        Node rundeckNodeNode = xpath != null ? node.selectSingleNode(xpath) : node;
+
+        RundeckNode rundeckNode = new RundeckNode();
+
+        rundeckNode.setName(StringUtils.trimToNull(rundeckNodeNode.valueOf("@name")));
+        rundeckNode.setType(StringUtils.trimToNull(rundeckNodeNode.valueOf("@type")));
+        rundeckNode.setDescription(StringUtils.trimToNull(rundeckNodeNode.valueOf("@description")));
+        rundeckNode.setHostname(StringUtils.trimToNull(rundeckNodeNode.valueOf("@hostname")));
+        rundeckNode.setOsArch(StringUtils.trimToNull(rundeckNodeNode.valueOf("@osArch")));
+        rundeckNode.setOsFamily(StringUtils.trimToNull(rundeckNodeNode.valueOf("@osFamily")));
+        rundeckNode.setOsName(StringUtils.trimToNull(rundeckNodeNode.valueOf("@osName")));
+        rundeckNode.setOsVersion(StringUtils.trimToNull(rundeckNodeNode.valueOf("@osVersion")));
+        rundeckNode.setUsername(StringUtils.trimToNull(rundeckNodeNode.valueOf("@username")));
+        rundeckNode.setEditUrl(StringUtils.trimToNull(rundeckNodeNode.valueOf("@editUrl")));
+        rundeckNode.setRemoteUrl(StringUtils.trimToNull(rundeckNodeNode.valueOf("@remoteUrl")));
+
+        String tags = StringUtils.trimToEmpty(rundeckNodeNode.valueOf("@tags"));
+        rundeckNode.setTags(Arrays.asList(StringUtils.split(tags, ",")));
+
+        return rundeckNode;
+    }
 
 }

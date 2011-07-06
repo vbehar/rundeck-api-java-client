@@ -33,11 +33,11 @@ import org.rundeck.api.domain.RundeckExecution.ExecutionStatus;
 public class ExecutionsParserTest {
 
     @Test
-    public void parseNode() throws Exception {
+    public void parseExecutions() throws Exception {
         InputStream input = getClass().getResourceAsStream("executions.xml");
         Document document = ParserHelper.loadDocument(input);
 
-        List<RundeckExecution> executions = new ExecutionsParser("result/executions/execution").parseNode(document);
+        List<RundeckExecution> executions = new ExecutionsParser("result/executions/execution").parseXmlNode(document);
         Assert.assertEquals(2, executions.size());
 
         RundeckExecution exec1 = executions.get(0);

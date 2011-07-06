@@ -15,28 +15,21 @@
  */
 package org.rundeck.api.parser;
 
-import java.io.InputStream;
-import org.dom4j.Document;
-import org.junit.Assert;
-import org.junit.Test;
-import org.rundeck.api.domain.RundeckProject;
+import org.dom4j.Node;
 
 /**
- * Test the {@link ProjectParser}
+ * Interface to be implemented for parsers that handle XML {@link Node}s
  * 
  * @author Vincent Behar
  */
-public class ProjectParserTest {
+public interface XmlNodeParser<T> {
 
-    @Test
-    public void parseProject() throws Exception {
-        InputStream input = getClass().getResourceAsStream("project.xml");
-        Document document = ParserHelper.loadDocument(input);
-
-        RundeckProject project = new ProjectParser("result/projects/project").parseXmlNode(document);
-
-        Assert.assertEquals("test", project.getName());
-        Assert.assertEquals("test project", project.getDescription());
-    }
+    /**
+     * Parse the given XML {@link Node}
+     * 
+     * @param node
+     * @return any object holding the converted value
+     */
+    T parseXmlNode(Node node);
 
 }

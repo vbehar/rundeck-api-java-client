@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project>
+  <node name="strongbad" type="Node" description="a development host" tags="dev" hostname="strongbad.local" osArch="i386" osFamily="unix" osName="Linux" osVersion="2.6.35-30-generic-pae" username="rundeck" editUrl="" remoteUrl=""/> 
+</project>

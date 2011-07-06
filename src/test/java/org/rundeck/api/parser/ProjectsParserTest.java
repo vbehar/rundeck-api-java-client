@@ -30,11 +30,11 @@ import org.rundeck.api.domain.RundeckProject;
 public class ProjectsParserTest {
 
     @Test
-    public void parseNode() throws Exception {
+    public void parseProjects() throws Exception {
         InputStream input = getClass().getResourceAsStream("projects.xml");
         Document document = ParserHelper.loadDocument(input);
 
-        List<RundeckProject> projects = new ProjectsParser("result/projects/project").parseNode(document);
+        List<RundeckProject> projects = new ProjectsParser("result/projects/project").parseXmlNode(document);
         Assert.assertEquals(2, projects.size());
 
         RundeckProject project1 = projects.get(0);

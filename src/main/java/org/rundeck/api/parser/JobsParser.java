@@ -25,7 +25,7 @@ import org.rundeck.api.domain.RundeckJob;
  * 
  * @author Vincent Behar
  */
-public class JobsParser implements NodeParser<List<RundeckJob>> {
+public class JobsParser implements XmlNodeParser<List<RundeckJob>> {
 
     private final String xpath;
 
@@ -38,14 +38,14 @@ public class JobsParser implements NodeParser<List<RundeckJob>> {
     }
 
     @Override
-    public List<RundeckJob> parseNode(Node node) {
+    public List<RundeckJob> parseXmlNode(Node node) {
         List<RundeckJob> jobs = new ArrayList<RundeckJob>();
 
         @SuppressWarnings("unchecked")
         List<Node> jobNodes = node.selectNodes(xpath);
 
         for (Node jobNode : jobNodes) {
-            RundeckJob job = new JobParser().parseNode(jobNode);
+            RundeckJob job = new JobParser().parseXmlNode(jobNode);
             jobs.add(job);
         }
 
