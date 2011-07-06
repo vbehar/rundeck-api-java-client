@@ -617,9 +617,50 @@ public class RundeckClient implements Serializable {
      */
     public List<RundeckExecution> getJobExecutions(String jobId) throws RundeckApiException, RundeckApiLoginException,
             IllegalArgumentException {
+        return getJobExecutions(jobId, null);
+    }
+
+    /**
+     * Get the executions of the given job
+     * 
+     * @param jobId identifier of the job - mandatory
+     * @param status of the executions - optional (null for all)
+     * @return a {@link List} of {@link RundeckExecution} : might be empty, but won't be null
+     * @throws RundeckApiException in case of error when calling the API (non-existent job with this ID)
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the jobId is blank (null, empty or whitespace)
+     */
+    public List<RundeckExecution> getJobExecutions(String jobId, ExecutionStatus status) throws RundeckApiException,
+            RundeckApiLoginException, IllegalArgumentException {
+        return getJobExecutions(jobId, status, null, null);
+    }
+
+    /**
+     * Get the executions of the given job
+     * 
+     * @param jobId identifier of the job - mandatory
+     * @param status of the executions - optional (null for all)
+     * @param max number of results to return - optional (null for all)
+     * @param offset the 0-indexed offset for the first result to return - optional
+     * @return a {@link List} of {@link RundeckExecution} : might be empty, but won't be null
+     * @throws RundeckApiException in case of error when calling the API (non-existent job with this ID)
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the jobId is blank (null, empty or whitespace)
+     */
+    public List<RundeckExecution> getJobExecutions(String jobId, ExecutionStatus status, Long max, Long offset)
+            throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException {
         AssertUtil.notBlank(jobId, "jobId is mandatory to get the executions of a job !");
-        return new ApiCall(this).get("/job/" + jobId + "/executions",
-                                     new ExecutionsParser("result/executions/execution"));
+        StringBuilder apiPath = new StringBuilder("/job/").append(jobId).append("/executions?");
+        if (status != null) {
+            apiPath.append("status=").append(StringUtils.lowerCase(status.toString())).append("&");
+        }
+        if (max != null && max >= 0) {
+            apiPath.append("max=").append(max).append("&");
+        }
+        if (offset != null && offset >= 0) {
+            apiPath.append("offset=").append(offset);
+        }
+        return new ApiCall(this).get(apiPath.toString(), new ExecutionsParser("result/executions/execution"));
     }
 
     /**
