@@ -1,7 +1,7 @@
 
 h1. Scripting with the RunDeck client
 
-You can use this librairie with your prefered scripting language... as long as it runs on the JVM !
+You can use this library with your prefered scripting language... as long as it runs on the JVM !
 
 You can find some examples with :
 * [Groovy|./groovy.html]

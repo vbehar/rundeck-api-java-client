@@ -3,9 +3,9 @@ h1. Java client for the RunDeck REST API
 
 h2. What is it ?
 
-A Java librairie that maps the [RunDeck|http://rundeck.org] HTTP REST API. RunDeck is an open-source tool for automating tasks on multiple nodes, with a CLI, a web-based interface and an HTTP REST API. You can read more about its API on the [RunDeck User Manual|http://rundeck.org/docs/RunDeck-Guide.html#rundeck-api].
+A Java library that maps the [RunDeck|http://rundeck.org] HTTP REST API. RunDeck is an open-source tool for automating tasks on multiple nodes, with a CLI, a web-based interface and an HTTP REST API. You can read more about its API on the [RunDeck User Manual|http://rundeck.org/docs/RunDeck-Guide.html#rundeck-api].
 
-This librairie has been extracted from the [Jenkins RunDeck plugin|http://wiki.jenkins-ci.org/display/JENKINS/RunDeck+Plugin], so for the moment it is still incomplete (not all the RunDeck API is mapped). My goal is to have a complete mapping of the RunDeck API, and to publish the librairie on the [Maven Central Repository|http://search.maven.org/], so that it can easily be used by Java ([Maven|http://maven.apache.org]) and Groovy ([Grape|http://groovy.codehaus.org/Grape]) developers.
+This library has been extracted from the [Jenkins RunDeck plugin|http://wiki.jenkins-ci.org/display/JENKINS/RunDeck+Plugin], so for the moment it is still incomplete (not all the RunDeck API is mapped). My goal is to have a complete mapping of the RunDeck API, and to publish the library on the [Maven Central Repository|http://search.maven.org/], so that it can easily be used by Java ([Maven|http://maven.apache.org]) and Groovy ([Grape|http://groovy.codehaus.org/Grape]) developers.
 
 h2. What can I do with it ?
 
