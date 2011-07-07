@@ -15,7 +15,9 @@
  */
 package org.rundeck.api;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -118,6 +120,25 @@ class ApiCall {
     }
 
     /**
+     * Execute an HTTP GET request to the RunDeck instance, on the given path. We will login first, and then execute the
+     * API call.
+     * 
+     * @param apiPath on which we will make the HTTP request - see {@link ApiPathBuilder}
+     * @return a new {@link InputStream} instance, not linked with network resources
+     * @throws RundeckApiException in case of error when calling the API
+     * @throws RundeckApiLoginException if the login fails
+     */
+    public InputStream get(ApiPathBuilder apiPath) throws RundeckApiException, RundeckApiLoginException {
+        ByteArrayInputStream response = execute(new HttpGet(client.getUrl() + RundeckClient.API_ENDPOINT + apiPath));
+
+        // try to load the document, to throw an exception in case of error
+        ParserHelper.loadDocument(response);
+        response.reset();
+
+        return response;
+    }
+
+    /**
      * Execute an HTTP DELETE request to the RunDeck instance, on the given path. We will login first, and then execute
      * the API call. At the end, the given parser will be used to convert the response to a more useful result object.
      * 
@@ -144,6 +165,23 @@ class ApiCall {
      */
     private <T> T execute(HttpRequestBase request, XmlNodeParser<T> parser) throws RundeckApiException,
             RundeckApiLoginException {
+        // execute the request
+        InputStream response = execute(request);
+
+        // read and parse the response
+        Document xmlDocument = ParserHelper.loadDocument(response);
+        return parser.parseXmlNode(xmlDocument);
+    }
+
+    /**
+     * Execute an HTTP request to the RunDeck instance. We will login first, and then execute the API call.
+     * 
+     * @param request to execute. see {@link HttpGet}, {@link HttpDelete}, and so on...
+     * @return a new {@link InputStream} instance, not linked with network resources
+     * @throws RundeckApiException in case of error when calling the API
+     * @throws RundeckApiLoginException if the login fails
+     */
+    private ByteArrayInputStream execute(HttpRequestBase request) throws RundeckApiException, RundeckApiLoginException {
         HttpClient httpClient = instantiateHttpClient();
         try {
             login(httpClient);
@@ -176,6 +214,7 @@ class ApiCall {
                 }
             }
 
+            // check the response code (should be 2xx, even in case of error : error message is in the XML result)
             if (response.getStatusLine().getStatusCode() / 100 != 2) {
                 throw new RundeckApiException("Invalid HTTP response '" + response.getStatusLine() + "' for "
                                               + request.getURI());
@@ -185,17 +224,12 @@ class ApiCall {
                                               + response.getStatusLine());
             }
 
-            // read and parse the response
-            Document xmlDocument = ParserHelper.loadDocument(response);
-            T result = parser.parseXmlNode(xmlDocument);
-
-            // release the connection
+            // return a new inputStream, so that we can close all network resources
             try {
-                EntityUtils.consume(response.getEntity());
+                return new ByteArrayInputStream(EntityUtils.toByteArray(response.getEntity()));
             } catch (IOException e) {
-                throw new RundeckApiException("Failed to consume entity (release connection)", e);
+                throw new RundeckApiException("Failed to consume entity and convert the inputStream", e);
             }
-            return result;
         } finally {
             httpClient.getConnectionManager().shutdown();
         }

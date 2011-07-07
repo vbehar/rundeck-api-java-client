@@ -15,11 +15,16 @@
  */
 package org.rundeck.api;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.rundeck.api.RundeckApiException.RundeckApiLoginException;
 import org.rundeck.api.domain.RundeckAbort;
@@ -193,6 +198,85 @@ public class RundeckClient implements Serializable {
                                                                 .param("groupPath", groupPath)
                                                                 .param("idlist", StringUtils.join(jobIds, ",")),
                                      new ListParser<RundeckJob>(new JobParser(), "result/jobs/job"));
+    }
+
+    /**
+     * Export the definitions of all jobs that belongs to the given project, as an XML file
+     * 
+     * @param filename path of the file where the content should be saved
+     * @param project name of the project - mandatory
+     * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the project is blank (null, empty or whitespace)
+     * @throws IOException if we failed to write to the file
+     * @see #exportJobsToFile(String, String, String, String, String...)
+     * @see #exportJobs(String)
+     */
+    public void exportJobsToFile(String filename, String project) throws RundeckApiException, RundeckApiLoginException,
+            IllegalArgumentException, IOException {
+        exportJobsToFile(filename, project, null, null, new String[0]);
+    }
+
+    /**
+     * Export the definitions of the jobs that belongs to the given project, and matches the given criteria (jobFilter,
+     * groupPath and jobIds), as an XML file
+     * 
+     * @param filename path of the file where the content should be saved
+     * @param project name of the project - mandatory
+     * @param jobFilter a filter for the job Name - optional
+     * @param groupPath a group or partial group path to include all jobs within that group path - optional
+     * @param jobIds a list of Job IDs to include - optional
+     * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the project is blank (null, empty or whitespace)
+     * @throws IOException if we failed to write to the file
+     * @see #exportJobsToFile(String, String)
+     * @see #exportJobs(String, String, String, String...)
+     */
+    public void exportJobsToFile(String filename, String project, String jobFilter, String groupPath, String... jobIds)
+            throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException, IOException {
+        InputStream inputStream = exportJobs(project, jobFilter, groupPath, jobIds);
+        FileUtils.writeByteArrayToFile(new File(filename), IOUtils.toByteArray(inputStream));
+    }
+
+    /**
+     * Export the definitions of all jobs that belongs to the given project
+     * 
+     * @param project name of the project - mandatory
+     * @return an {@link InputStream} instance, not linked to any network resources - won't be null
+     * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the project is blank (null, empty or whitespace)
+     * @see #exportJobs(String, String, String, String...)
+     * @see #exportJobsToFile(String, String)
+     */
+    public InputStream exportJobs(String project) throws RundeckApiException, RundeckApiLoginException,
+            IllegalArgumentException {
+        return exportJobs(project, null, null, new String[0]);
+    }
+
+    /**
+     * Export the definitions of the jobs that belongs to the given project, and matches the given criteria (jobFilter,
+     * groupPath and jobIds)
+     * 
+     * @param project name of the project - mandatory
+     * @param jobFilter a filter for the job Name - optional
+     * @param groupPath a group or partial group path to include all jobs within that group path - optional
+     * @param jobIds a list of Job IDs to include - optional
+     * @return an {@link InputStream} instance, not linked to any network resources - won't be null
+     * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the project is blank (null, empty or whitespace)
+     * @see #exportJobs(String)
+     * @see #exportJobsToFile(String, String, String, String, String...)
+     */
+    public InputStream exportJobs(String project, String jobFilter, String groupPath, String... jobIds)
+            throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException {
+        AssertUtil.notBlank(project, "project is mandatory to export all jobs !");
+        return new ApiCall(this).get(new ApiPathBuilder("/jobs/export").param("project", project)
+                                                                       .param("jobFilter", jobFilter)
+                                                                       .param("groupPath", groupPath)
+                                                                       .param("idlist", StringUtils.join(jobIds, ",")));
     }
 
     /**
