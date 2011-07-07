@@ -30,8 +30,10 @@ import org.apache.http.NameValuePair;
 import org.apache.http.ParseException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.conn.scheme.Scheme;
 import org.apache.http.conn.ssl.SSLSocketFactory;
 import org.apache.http.conn.ssl.TrustStrategy;
@@ -41,8 +43,8 @@ import org.apache.http.protocol.HTTP;
 import org.apache.http.util.EntityUtils;
 import org.dom4j.Document;
 import org.rundeck.api.RundeckApiException.RundeckApiLoginException;
-import org.rundeck.api.parser.XmlNodeParser;
 import org.rundeck.api.parser.ParserHelper;
+import org.rundeck.api.parser.XmlNodeParser;
 import org.rundeck.api.util.AssertUtil;
 
 /**
@@ -110,9 +112,38 @@ class ApiCall {
      * @throws RundeckApiException in case of error when calling the API
      * @throws RundeckApiLoginException if the login fails
      */
-    public <T> T get(ApiPathBuilder apiPath, XmlNodeParser<T> parser) throws RundeckApiException, RundeckApiLoginException {
-        String apiUrl = client.getUrl() + RundeckClient.API_ENDPOINT + apiPath;
+    public <T> T get(ApiPathBuilder apiPath, XmlNodeParser<T> parser) throws RundeckApiException,
+            RundeckApiLoginException {
+        return execute(new HttpGet(client.getUrl() + RundeckClient.API_ENDPOINT + apiPath), parser);
+    }
 
+    /**
+     * Execute an HTTP DELETE request to the RunDeck instance, on the given path. We will login first, and then execute
+     * the API call. At the end, the given parser will be used to convert the response to a more useful result object.
+     * 
+     * @param apiPath on which we will make the HTTP request - see {@link ApiPathBuilder}
+     * @param parser used to parse the response
+     * @return the result of the call, as formatted by the parser
+     * @throws RundeckApiException in case of error when calling the API
+     * @throws RundeckApiLoginException if the login fails
+     */
+    public <T> T delete(ApiPathBuilder apiPath, XmlNodeParser<T> parser) throws RundeckApiException,
+            RundeckApiLoginException {
+        return execute(new HttpDelete(client.getUrl() + RundeckClient.API_ENDPOINT + apiPath), parser);
+    }
+
+    /**
+     * Execute an HTTP request to the RunDeck instance. We will login first, and then execute the API call. At the end,
+     * the given parser will be used to convert the response to a more useful result object.
+     * 
+     * @param request to execute. see {@link HttpGet}, {@link HttpDelete}, and so on...
+     * @param parser used to parse the response
+     * @return the result of the call, as formatted by the parser
+     * @throws RundeckApiException in case of error when calling the API
+     * @throws RundeckApiLoginException if the login fails
+     */
+    private <T> T execute(HttpRequestBase request, XmlNodeParser<T> parser) throws RundeckApiException,
+            RundeckApiLoginException {
         HttpClient httpClient = instantiateHttpClient();
         try {
             login(httpClient);
@@ -120,12 +151,34 @@ class ApiCall {
             // execute the HTTP request
             HttpResponse response = null;
             try {
-                response = httpClient.execute(new HttpGet(apiUrl));
+                response = httpClient.execute(request);
             } catch (IOException e) {
-                throw new RundeckApiException("Failed to execute an HTTP GET on url : " + apiUrl, e);
+                throw new RundeckApiException("Failed to execute an HTTP " + request.getMethod() + " on url : "
+                                              + request.getURI(), e);
             }
+
+            // HTTP client refuses to handle redirects (code 3xx) for DELETE, so we have to do it manually...
+            // See http://rundeck.lighthouseapp.com/projects/59277/tickets/248
+            if (response.getStatusLine().getStatusCode() / 100 == 3
+                && HttpDelete.METHOD_NAME.equals(request.getMethod())) {
+                String newLocation = response.getFirstHeader("Location").getValue();
+                try {
+                    EntityUtils.consume(response.getEntity());
+                } catch (IOException e) {
+                    throw new RundeckApiException("Failed to consume entity (release connection)", e);
+                }
+                request = new HttpDelete(newLocation);
+                try {
+                    response = httpClient.execute(request);
+                } catch (IOException e) {
+                    throw new RundeckApiException("Failed to execute an HTTP " + request.getMethod() + " on url : "
+                                                  + request.getURI(), e);
+                }
+            }
+
             if (response.getStatusLine().getStatusCode() / 100 != 2) {
-                throw new RundeckApiException("Invalid HTTP response '" + response.getStatusLine() + "' for " + apiUrl);
+                throw new RundeckApiException("Invalid HTTP response '" + response.getStatusLine() + "' for "
+                                              + request.getURI());
             }
             if (response.getEntity() == null) {
                 throw new RundeckApiException("Empty RunDeck response ! HTTP status line is : "
@@ -235,5 +288,4 @@ class ApiCall {
         httpClient.getConnectionManager().getSchemeRegistry().register(new Scheme("https", 443, socketFactory));
         return httpClient;
     }
-
 }

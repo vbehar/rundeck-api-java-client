@@ -24,16 +24,17 @@ import org.apache.commons.lang.StringUtils;
 import org.rundeck.api.RundeckApiException.RundeckApiLoginException;
 import org.rundeck.api.domain.RundeckAbort;
 import org.rundeck.api.domain.RundeckExecution;
-import org.rundeck.api.domain.RundeckExecution.ExecutionStatus;
 import org.rundeck.api.domain.RundeckJob;
 import org.rundeck.api.domain.RundeckNode;
 import org.rundeck.api.domain.RundeckProject;
+import org.rundeck.api.domain.RundeckExecution.ExecutionStatus;
 import org.rundeck.api.parser.AbortParser;
 import org.rundeck.api.parser.ExecutionParser;
 import org.rundeck.api.parser.JobParser;
 import org.rundeck.api.parser.ListParser;
 import org.rundeck.api.parser.NodeParser;
 import org.rundeck.api.parser.ProjectParser;
+import org.rundeck.api.parser.StringParser;
 import org.rundeck.api.util.AssertUtil;
 import org.rundeck.api.util.ParametersUtil;
 
@@ -227,6 +228,21 @@ public class RundeckClient implements Serializable {
             IllegalArgumentException {
         AssertUtil.notBlank(jobId, "jobId is mandatory to get the details of a job !");
         return new ApiCall(this).get(new ApiPathBuilder("/job/", jobId), new JobParser("joblist/job"));
+    }
+
+    /**
+     * Delete a single job, identified by the given ID
+     * 
+     * @param jobId identifier of the job - mandatory
+     * @return the success message (note that in case of error, you'll get an exception)
+     * @throws RundeckApiException in case of error when calling the API (non-existent job with this ID)
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the jobId is blank (null, empty or whitespace)
+     */
+    public String deleteJob(String jobId) throws RundeckApiException, RundeckApiLoginException,
+            IllegalArgumentException {
+        AssertUtil.notBlank(jobId, "jobId is mandatory to delete a job !");
+        return new ApiCall(this).delete(new ApiPathBuilder("/job/", jobId), new StringParser("result/success/message"));
     }
 
     /**
