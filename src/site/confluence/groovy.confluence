@@ -61,7 +61,7 @@ execution = rundeck.triggerJob("job-id", new Properties(opt: "value"), new Prope
 
 // last one : you can run a job and wait until its execution is finished :
 execution = rundeck.runJob("job-id")
-println "Execution finished ! Status : ${execution.status}, duration (in seconds) : ${execution.durationInSeconds}"
+println "Execution finished ! Status : ${execution.status}, duration : ${execution.duration}"
 {code}
 
 h2. Running an ad-hoc command

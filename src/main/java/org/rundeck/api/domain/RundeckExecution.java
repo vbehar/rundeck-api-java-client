@@ -18,6 +18,7 @@ package org.rundeck.api.domain;
 import java.io.Serializable;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
+import org.apache.commons.lang.time.DurationFormatUtils;
 
 /**
  * Represents a RunDeck execution, usually triggered by an API call. An execution could be a {@link RundeckJob}
@@ -70,6 +71,30 @@ public class RundeckExecution implements Serializable {
             return null;
         }
         return TimeUnit.MILLISECONDS.toSeconds(durationInMillis);
+    }
+
+    /**
+     * @return the duration of the execution, as a human-readable string : "3 minutes 34 seconds" (or null if the
+     *         duration is still running, or has been aborted)
+     */
+    public String getDuration() {
+        Long durationInMillis = getDurationInMillis();
+        if (durationInMillis == null) {
+            return null;
+        }
+        return DurationFormatUtils.formatDurationWords(durationInMillis, true, true);
+    }
+
+    /**
+     * @return the duration of the execution, as a "short" human-readable string : "0:03:34.187" (or null if the
+     *         duration is still running, or has been aborted)
+     */
+    public String getShortDuration() {
+        Long durationInMillis = getDurationInMillis();
+        if (durationInMillis == null) {
+            return null;
+        }
+        return DurationFormatUtils.formatDurationHMS(durationInMillis);
     }
 
     public Long getId() {
