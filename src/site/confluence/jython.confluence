@@ -63,6 +63,15 @@ execution = rundeck.triggerAdhocCommand("my-project", "uptime")
 execution = rundeck.runAdhocCommand("my-project", "uptime", NodeFiltersBuilder().osFamily("unix").toProperties())
 {code}
 
+h2. Exporting jobs
+
+{code}
+from org.rundeck.api import RundeckClient
+rundeck = RundeckClient("http://localhost:4440", "admin", "admin")
+
+rundeck.exportJobsToFile("/tmp/jobs.xml", "my-project")
+{code}
+
 h2. And more...
 
 See the API documentation of the [RundeckClient|./apidocs/org/rundeck/api/RundeckClient.html] class for more interactions with your RunDeck instance...
