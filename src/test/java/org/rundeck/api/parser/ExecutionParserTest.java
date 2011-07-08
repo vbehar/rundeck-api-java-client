@@ -45,6 +45,8 @@ public class ExecutionParserTest {
         Assert.assertEquals("admin", execution.getStartedBy());
         Assert.assertEquals(new Date(1302183830082L), execution.getStartedAt());
         Assert.assertEquals(null, execution.getEndedAt());
+        Assert.assertEquals(null, execution.getDurationInMillis());
+        Assert.assertEquals(null, execution.getDuration());
         Assert.assertEquals(null, execution.getAbortedBy());
         Assert.assertEquals("ls ${option.dir}", execution.getDescription());
 
@@ -69,6 +71,8 @@ public class ExecutionParserTest {
         Assert.assertEquals("admin", execution.getStartedBy());
         Assert.assertEquals(new Date(1308322895104L), execution.getStartedAt());
         Assert.assertEquals(new Date(1308322959420L), execution.getEndedAt());
+        Assert.assertEquals(new Long(64316), execution.getDurationInMillis());
+        Assert.assertEquals("1 minute 4 seconds", execution.getDuration());
         Assert.assertEquals(null, execution.getAbortedBy());
         Assert.assertEquals("ls ${option.dir}", execution.getDescription());
 
@@ -93,6 +97,8 @@ public class ExecutionParserTest {
         Assert.assertEquals("admin", execution.getStartedBy());
         Assert.assertEquals(new Date(1309857539137L), execution.getStartedAt());
         Assert.assertEquals(new Date(1309857539606L), execution.getEndedAt());
+        Assert.assertEquals(new Long(469), execution.getDurationInMillis());
+        Assert.assertEquals("0 seconds", execution.getDuration());
         Assert.assertEquals(null, execution.getAbortedBy());
         Assert.assertEquals("w", execution.getDescription());
 
@@ -113,6 +119,8 @@ public class ExecutionParserTest {
         Assert.assertNull(execution.getStartedBy());
         Assert.assertNull(execution.getStartedAt());
         Assert.assertNull(execution.getEndedAt());
+        Assert.assertNull(execution.getDurationInMillis());
+        Assert.assertNull(execution.getDuration());
         Assert.assertNull(execution.getAbortedBy());
         Assert.assertNull(execution.getDescription());
 
