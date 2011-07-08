@@ -20,6 +20,7 @@ import org.rundeck.api.RundeckClient
 
 rundeck = new RundeckClient("http://localhost:4440", "admin", "admin")
 
+println "RunDeck uptime : ${rundeck.systemInfo.uptime}"
 println "All RunDeck projects : ${rundeck.projects}"
 println "All RunDeck nodes : ${rundeck.nodes}"
 println "All RunDeck jobs : ${rundeck.jobs}"
@@ -33,6 +34,7 @@ import org.rundeck.api.RundeckClient
 
 rundeck = new RundeckClient("http://localhost:4440", "admin", "admin")
 
+println "RunDeck uptime : ${rundeck.systemInfo.uptime}"
 println "All RunDeck projects : ${rundeck.projects}"
 println "All RunDeck nodes : ${rundeck.nodes}"
 println "All RunDeck jobs : ${rundeck.jobs}"

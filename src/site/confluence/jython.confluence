@@ -14,6 +14,7 @@ from org.rundeck.api import RundeckClient
 
 rundeck = RundeckClient("http://localhost:4440", "admin", "admin")
 
+print("RunDeck uptime : %s" % rundeck.systemInfo.uptime)
 print("All RunDeck projects : %s" % rundeck.projects)
 print("All RunDeck nodes : %s" % rundeck.nodes)
 print("All RunDeck jobs : %s" % rundeck.jobs)

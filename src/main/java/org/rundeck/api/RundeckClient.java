@@ -32,6 +32,7 @@ import org.rundeck.api.domain.RundeckExecution;
 import org.rundeck.api.domain.RundeckJob;
 import org.rundeck.api.domain.RundeckNode;
 import org.rundeck.api.domain.RundeckProject;
+import org.rundeck.api.domain.RundeckSystemInfo;
 import org.rundeck.api.domain.RundeckExecution.ExecutionStatus;
 import org.rundeck.api.parser.AbortParser;
 import org.rundeck.api.parser.ExecutionParser;
@@ -40,6 +41,7 @@ import org.rundeck.api.parser.ListParser;
 import org.rundeck.api.parser.NodeParser;
 import org.rundeck.api.parser.ProjectParser;
 import org.rundeck.api.parser.StringParser;
+import org.rundeck.api.parser.SystemInfoParser;
 import org.rundeck.api.util.AssertUtil;
 import org.rundeck.api.util.ParametersUtil;
 
@@ -844,6 +846,21 @@ public class RundeckClient implements Serializable {
         AssertUtil.notBlank(project, "project is mandatory to get a node !");
         return new ApiCall(this).get(new ApiPathBuilder("/resource/", name).param("project", project),
                                      new NodeParser("project/node"));
+    }
+
+    /*
+     * System Info
+     */
+
+    /**
+     * Get system informations about the RunDeck server
+     * 
+     * @return a {@link RundeckSystemInfo} instance - won't be null
+     * @throws RundeckApiException in case of error when calling the API
+     * @throws RundeckApiException if the login failed
+     */
+    public RundeckSystemInfo getSystemInfo() throws RundeckApiException, RundeckApiLoginException {
+        return new ApiCall(this).get(new ApiPathBuilder("/system/info"), new SystemInfoParser("result/system"));
     }
 
     public String getUrl() {
