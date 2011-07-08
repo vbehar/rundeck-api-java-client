@@ -1,0 +1,27 @@
+
+h1. Status of the implementation of the RunDeck API
+
+h2. RunDeck API version 1
+
+[Documentation of the RunDeck API version 1|http://rundeck.org/1.2.1/RunDeck-Guide.html#rundeck-api]
+
+* System Info - OK
+* Listing Jobs - OK
+* Running a Job - OK
+* Exporting Jobs - OK (XML only, YAML not supported yet)
+* Importing Jobs - *TODO*
+* Getting a Job Definition - OK (XML only, YAML not supported yet)
+* Deleting a Job Definition - OK
+* Getting Executions for a Job - OK
+* Listing Running Executions - OK
+* Getting Execution Info - OK
+* Aborting Executions - OK
+* Running Adhoc Commands - OK
+* Running Adhoc Scripts - *TODO*
+* Listing Projects - OK
+* Getting Project Info - OK
+* Listing History - *TODO*
+* Creating History Event Reports - *TODO*
+* Listing Resources - OK (XML only, YAML not supported yet)
+* Getting Resource Info - OK (XML only, YAML not supported yet)
+

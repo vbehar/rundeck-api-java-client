@@ -24,12 +24,13 @@
   <body>
     <breadcrumbs>
       <item name="RunDeck" href="http://rundeck.org" />
-      <item name="RunDeck API - Java Client" href="./" />
+      <item name="RunDeck API - Java Client" href="" />
     </breadcrumbs>
     <menu name="${project.name}">
       <item name="Introduction" href="index.html" />
-      <item name="Download" href="download.html" />
+      <item name="Status" href="status.html" />
       <item name="FAQ" href="faq.html" />
+      <item name="Download" href="download.html" />
       <item name="API Documentation" href="apidocs/index.html" />
     </menu>
     <menu name="Scripting examples">
