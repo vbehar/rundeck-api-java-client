@@ -1,13 +1,3 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<pmd version="4.2.5" timestamp="2011-07-07T23:07:00.381">
-<file name="/home/vinz/projects/perso/rundeck/rundeck-api-java-client/src/main/java/org/rundeck/api/parser/AbortParser.java">
-<violation beginline="53" endline="54" begincolumn="11" endcolumn="9" rule="EmptyCatchBlock" ruleset="Basic Rules" package="org.rundeck.api.parser" class="AbortParser" method="parseXmlNode" externalInfoUrl="http://pmd.sourceforge.net/rules/basic.html#EmptyCatchBlock" priority="3">
-Avoid empty catch blocks
-</violation>
-</file>
-<file name="/home/vinz/projects/perso/rundeck/rundeck-api-java-client/src/main/java/org/rundeck/api/parser/ExecutionParser.java">
-<violation beginline="56" endline="57" begincolumn="11" endcolumn="9" rule="EmptyCatchBlock" ruleset="Basic Rules" package="org.rundeck.api.parser" class="ExecutionParser" method="parseXmlNode" externalInfoUrl="http://pmd.sourceforge.net/rules/basic.html#EmptyCatchBlock" priority="3">
-Avoid empty catch blocks
-</violation>
-</file>
+<pmd version="4.2.5" timestamp="2011-07-08T20:02:24.173">
 </pmd>
