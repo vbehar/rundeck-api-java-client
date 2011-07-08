@@ -13,7 +13,7 @@ http://rundeck.org/1.2.1/RunDeck-Guide.html#rundeck-api
 9. Listing Running Executions - OK
 10. Getting Execution Info - OK
 11. Aborting Executions - OK
-12. Running Adhoc Commands - OK (missing parameters nodeThreadcount & nodeKeepgoing)
+12. Running Adhoc Commands - OK
 13. Running Adhoc Scripts - TODO
 14. Listing Projects - OK
 15. Getting Project Info - TODO

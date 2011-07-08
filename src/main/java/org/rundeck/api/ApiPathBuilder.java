@@ -84,6 +84,36 @@ class ApiPathBuilder {
     }
 
     /**
+     * Append the given parameter (key and value). This will only append the parameter if it is not null, and make sure
+     * to add the right separator ("?" or "&") before. The key and value will be separated by the "=" character.
+     * 
+     * @param key of the parameter. Must not be null or empty
+     * @param value of the parameter. May be null
+     * @return this, for method chaining
+     */
+    public ApiPathBuilder param(String key, Integer value) {
+        if (value != null) {
+            param(key, value.toString());
+        }
+        return this;
+    }
+
+    /**
+     * Append the given parameter (key and value). This will only append the parameter if it is not null, and make sure
+     * to add the right separator ("?" or "&") before. The key and value will be separated by the "=" character.
+     * 
+     * @param key of the parameter. Must not be null or empty
+     * @param value of the parameter. May be null
+     * @return this, for method chaining
+     */
+    public ApiPathBuilder param(String key, Boolean value) {
+        if (value != null) {
+            param(key, value.toString());
+        }
+        return this;
+    }
+
+    /**
      * Append the given node filters, only if it is not null/empty
      * 
      * @param nodeFilters may be null/empty
