@@ -74,11 +74,11 @@ public class RundeckSystemInfo implements Serializable {
     }
 
     public Date getDate() {
-        return date;
+        return (date != null) ? new Date(date.getTime()) : null;
     }
 
     public void setDate(Date date) {
-        this.date = date;
+        this.date = ((date != null) ? new Date(date.getTime()) : null);
     }
 
     public String getVersion() {
@@ -162,11 +162,11 @@ public class RundeckSystemInfo implements Serializable {
     }
 
     public Date getStartDate() {
-        return startDate;
+        return (startDate != null) ? new Date(startDate.getTime()) : null;
     }
 
     public void setStartDate(Date startDate) {
-        this.startDate = startDate;
+        this.startDate = ((startDate != null) ? new Date(startDate.getTime()) : null);
     }
 
     public Long getUptimeInMillis() {
