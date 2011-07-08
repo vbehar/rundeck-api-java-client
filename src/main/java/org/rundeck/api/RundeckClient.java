@@ -282,6 +282,41 @@ public class RundeckClient implements Serializable {
     }
 
     /**
+     * Export the definition of a single job (identified by the given ID), as an XML file
+     * 
+     * @param filename path of the file where the content should be saved
+     * @param jobId identifier of the job - mandatory
+     * @throws RundeckApiException in case of error when calling the API (non-existent job with this ID)
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the jobId is blank (null, empty or whitespace)
+     * @throws IOException if we failed to write to the file
+     * @see #exportJob(String)
+     * @see #getJob(String)
+     */
+    public void exportJobToFile(String filename, String jobId) throws RundeckApiException, RundeckApiLoginException,
+            IllegalArgumentException, IOException {
+        InputStream inputStream = exportJob(jobId);
+        FileUtils.writeByteArrayToFile(new File(filename), IOUtils.toByteArray(inputStream));
+    }
+
+    /**
+     * Export the definition of a single job, identified by the given ID
+     * 
+     * @param jobId identifier of the job - mandatory
+     * @return an {@link InputStream} instance, not linked to any network resources - won't be null
+     * @throws RundeckApiException in case of error when calling the API (non-existent job with this ID)
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the jobId is blank (null, empty or whitespace)
+     * @see #exportJobToFile(String, String)
+     * @see #getJob(String)
+     */
+    public InputStream exportJob(String jobId) throws RundeckApiException, RundeckApiLoginException,
+            IllegalArgumentException {
+        AssertUtil.notBlank(jobId, "jobId is mandatory to get the details of a job !");
+        return new ApiCall(this).get(new ApiPathBuilder("/job/", jobId));
+    }
+
+    /**
      * Find a job, identified by its project, group and name. Note that the groupPath is optional, as a job does not
      * need to belong to a group (either pass null, or an empty string).
      * 
@@ -292,6 +327,7 @@ public class RundeckClient implements Serializable {
      * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
      * @throws RundeckApiLoginException if the login failed
      * @throws IllegalArgumentException if the project or the name is blank (null, empty or whitespace)
+     * @see #getJob(String)
      */
     public RundeckJob findJob(String project, String groupPath, String name) throws RundeckApiException,
             RundeckApiLoginException, IllegalArgumentException {
@@ -309,6 +345,8 @@ public class RundeckClient implements Serializable {
      * @throws RundeckApiException in case of error when calling the API (non-existent job with this ID)
      * @throws RundeckApiLoginException if the login failed
      * @throws IllegalArgumentException if the jobId is blank (null, empty or whitespace)
+     * @see #findJob(String, String, String)
+     * @see #exportJob(String)
      */
     public RundeckJob getJob(String jobId) throws RundeckApiException, RundeckApiLoginException,
             IllegalArgumentException {

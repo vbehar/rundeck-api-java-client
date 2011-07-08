@@ -87,6 +87,7 @@ import org.rundeck.api.RundeckClient
 rundeck = RundeckClient.new("http://localhost:4440", "admin", "admin")
 
 rundeck.exportJobsToFile("/tmp/jobs.xml", "my-project")
+rundeck.exportJobToFile("/tmp/job.xml", "job-id")
 {code}
 
 h2. And more...
