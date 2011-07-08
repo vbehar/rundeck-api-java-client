@@ -54,6 +54,7 @@ public class ExecutionParser implements XmlNodeParser<RundeckExecution> {
         try {
             execution.setStatus(ExecutionStatus.valueOf(StringUtils.upperCase(execNode.valueOf("@status"))));
         } catch (IllegalArgumentException e) {
+            execution.setStatus(null);
         }
         execution.setDescription(StringUtils.trimToNull(execNode.valueOf("description")));
         execution.setStartedBy(StringUtils.trimToNull(execNode.valueOf("user")));

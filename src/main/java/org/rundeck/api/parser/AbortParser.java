@@ -51,6 +51,7 @@ public class AbortParser implements XmlNodeParser<RundeckAbort> {
         try {
             abort.setStatus(AbortStatus.valueOf(StringUtils.upperCase(abortNode.valueOf("@status"))));
         } catch (IllegalArgumentException e) {
+            abort.setStatus(null);
         }
 
         Node execNode = abortNode.selectSingleNode("execution");
