@@ -16,7 +16,7 @@ http://rundeck.org/1.2.1/RunDeck-Guide.html#rundeck-api
 12. Running Adhoc Commands - OK
 13. Running Adhoc Scripts - TODO
 14. Listing Projects - OK
-15. Getting Project Info - TODO
+15. Getting Project Info - OK
 16. Listing History - TODO
 17. Creating History Event Reports - TODO
 18. Listing Resources - OK (XML only, YAML not supported yet)

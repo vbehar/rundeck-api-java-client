@@ -48,6 +48,7 @@ public class ProjectParser implements XmlNodeParser<RundeckProject> {
 
         project.setName(StringUtils.trimToNull(projectNode.valueOf("name")));
         project.setDescription(StringUtils.trimToNull(projectNode.valueOf("description")));
+        project.setResourceModelProviderUrl(StringUtils.trimToNull(projectNode.valueOf("resources/providerURL")));
 
         return project;
     }
