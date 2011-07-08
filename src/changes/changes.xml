@@ -22,7 +22,7 @@
     <author>Vincent Behar</author>
   </properties>
   <body>
-    <release version="1.0" date="Not yet released" description="Use RunDeck REST API version 1 (RunDeck 1.2+)">
+    <release version="1.0" date="2011-07-08" description="Use RunDeck REST API version 1 (RunDeck 1.2+)">
       <action dev="vbehar" type="add">
         Initial release
       </action>
