@@ -5,17 +5,13 @@ Here are some examples of what you can do with this lib and a few lines of [Groo
 
 We can use [Grape|http://groovy.codehaus.org/Grape] to download the lib (and its dependencies) from the [Maven Central Repository|http://search.maven.org/], so you don't have to install anything manually (except Groovy, of course).
 
-{note}
-Note that the lib is NOT in the Maven Central Repository for the moment... but hopefully it should be pretty soon ! You can still [download|./download.html] it manually.
-{note}
-
 h2. Basic usage
 
 Save the following script in a file named "{{rundeck.groovy}}", and execute it with "{{groovy rundeck.groovy}}". Feeling Groovy ? ;-)
 
 {code}
 // we use Grape (Ivy) to download the lib (and its dependencies) from Maven Central Repository
-@Grab(group='org.rundeck', module='rundeck-api-java-client', version='1.0-SNAPSHOT')
+@Grab(group='org.rundeck', module='rundeck-api-java-client', version='1.0')
 import org.rundeck.api.RundeckClient
 
 rundeck = new RundeckClient("http://localhost:4440", "admin", "admin")
