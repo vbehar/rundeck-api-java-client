@@ -63,38 +63,29 @@ public class RundeckExecution implements Serializable {
     }
 
     /**
-     * @return the duration of the execution in seconds (or null if the duration is still running, or has been aborted)
+     * @return the duration of the execution in seconds (or null if the execution is still running, or has been aborted)
      */
     public Long getDurationInSeconds() {
         Long durationInMillis = getDurationInMillis();
-        if (durationInMillis == null) {
-            return null;
-        }
-        return TimeUnit.MILLISECONDS.toSeconds(durationInMillis);
+        return durationInMillis != null ? TimeUnit.MILLISECONDS.toSeconds(durationInMillis) : null;
     }
 
     /**
      * @return the duration of the execution, as a human-readable string : "3 minutes 34 seconds" (or null if the
-     *         duration is still running, or has been aborted)
+     *         execution is still running, or has been aborted)
      */
     public String getDuration() {
         Long durationInMillis = getDurationInMillis();
-        if (durationInMillis == null) {
-            return null;
-        }
-        return DurationFormatUtils.formatDurationWords(durationInMillis, true, true);
+        return durationInMillis != null ? DurationFormatUtils.formatDurationWords(durationInMillis, true, true) : null;
     }
 
     /**
      * @return the duration of the execution, as a "short" human-readable string : "0:03:34.187" (or null if the
-     *         duration is still running, or has been aborted)
+     *         execution is still running, or has been aborted)
      */
     public String getShortDuration() {
         Long durationInMillis = getDurationInMillis();
-        if (durationInMillis == null) {
-            return null;
-        }
-        return DurationFormatUtils.formatDurationHMS(durationInMillis);
+        return durationInMillis != null ? DurationFormatUtils.formatDurationHMS(durationInMillis) : null;
     }
 
     public Long getId() {
