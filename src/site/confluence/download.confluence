@@ -11,7 +11,9 @@ Alternatively, you can download [releases|https://oss.sonatype.org/content/repos
 
 h2. Manual download
 
-If you want to use this library from a [scripting language|./scripting.html], it is often easier to download a single *jar* file with all dependencies included.
+If you want to use this library from a [scripting language|./scripting.html], it is often easier to download a single *jar* file with all dependencies included (named "*rundeck-api-java-client-VERSION-jar-with-dependencies.jar *")
 
-You can download such files on GitHub : [https://github.com/vbehar/rundeck-api-java-client/downloads]
+You can download such files on GitHub : [https://github.com/vbehar/rundeck-api-java-client/downloads] (for each release)
+
+You can also download the latest version (not yet released) on Jenkins : [https://rundeck-api-java-client.ci.cloudbees.com/job/master/lastSuccessfulBuild/artifact/target/]
 

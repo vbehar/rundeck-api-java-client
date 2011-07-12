@@ -3,18 +3,30 @@ h1. Java client for the RunDeck REST API
 
 h2. What is it ?
 
-A Java client (library) for the [RunDeck|http://rundeck.org] HTTP REST API.
+A Java client (library) for the RunDeck HTTP REST API.
 
-RunDeck is an open-source tool for automating tasks on multiple nodes, with a CLI, a web-based interface and an HTTP REST API. You can read more about its API on the [RunDeck User Manual|http://rundeck.org/docs/RunDeck-Guide.html#rundeck-api].
+[RunDeck|http://rundeck.org/] is an open-source tool for automating tasks on multiple nodes, with a CLI, a web-based interface and an HTTP REST API. You can read more about its API on the [RunDeck User Manual|http://rundeck.org/docs/RunDeck-Guide.html#rundeck-api].
+
+!images/rundeck.png!
 
 h2. What can I do with it ?
 
 * Use it to write [scripts|./scripting.html] (in [Groovy|./groovy.html], [JRuby|./jruby.html] or [Jython|./jython.html]), for example if you want to automate the execution of RunDeck jobs based on external events.
-* Use it in a Java application. A good example would be the [Jenkins RunDeck plugin|http://wiki.jenkins-ci.org/display/JENKINS/RunDeck+Plugin], that needs to trigger RunDeck jobs from within the [Jenkins|http://jenkins-ci.org] continuous-integration server.
+* Use it in a Java application. A good example would be the [Jenkins RunDeck plugin|http://wiki.jenkins-ci.org/display/JENKINS/RunDeck+Plugin], that needs to trigger RunDeck jobs from within the [Jenkins|http://jenkins-ci.org] continuous-integration server. Or the [RunDeck Remote CLI|https://github.com/vbehar/rundeck-remote-cli], that provides a java-based CLI on top of the API.
 
 h2. Where can I get more information ?
 
 * You can read the [API documentation|./apidocs/index.html], starting with the [RundeckClient|./apidocs/org/rundeck/api/RundeckClient.html] class.
-* And the code is available on [GitHub|https://github.com/vbehar/rundeck-api-java-client].
-* The Maven auto-generated pages : [project information|./project-info.html] and [project reports|./project-reports.html].
+* Or you can "Use the [Source|./source-repository.html], Luke !"
+* Read more on the Maven auto-generated pages : [project information|./project-info.html] and [project reports|./project-reports.html].
+
+h2. Thanks to...
+
+* [GitHub|https://github.com] for the [source code|./source-repository.html] and [website|./index.html] hosting
+* [CloudBees|http://cloudbees.com] for the [continuous integration|./integration.html] hosting
+* [Sonatype|http://www.sonatype.com] for the [Nexus repository|./distribution-management.html] hosting (and sync to Maven Central)
+
+!images/github.png!
+
+!images/cloudbees.png!
 

@@ -5,6 +5,7 @@ h2. RunDeck API version 1
 
 [Documentation of the RunDeck API version 1|http://rundeck.org/1.2.1/RunDeck-Guide.html#rundeck-api]
 
+* Login-based authentication - OK
 * System Info - OK
 * Listing Jobs - OK
 * Running a Job - OK
