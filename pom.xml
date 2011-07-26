@@ -96,7 +96,7 @@
     <plugin.install.version>2.3.1</plugin.install.version>
     <plugin.jar.version>2.3.1</plugin.jar.version>
     <plugin.javadoc.version>2.8</plugin.javadoc.version>
-    <plugin.jxr.version>2.2</plugin.jxr.version>
+    <plugin.jxr.version>2.3</plugin.jxr.version>
     <plugin.pmd.version>2.5</plugin.pmd.version>
     <plugin.project-info-reports.version>2.4</plugin.project-info-reports.version>
     <plugin.release.version>2.2</plugin.release.version>
