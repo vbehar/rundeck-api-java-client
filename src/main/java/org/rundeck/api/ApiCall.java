@@ -214,6 +214,23 @@ class ApiCall {
                 }
             }
 
+            // in case of error, we get a redirect to /api/error
+            // that we need to follow manually for POST and DELETE requests (as GET)
+            if (response.getStatusLine().getStatusCode() / 100 == 3) {
+                String newLocation = response.getFirstHeader("Location").getValue();
+                try {
+                    EntityUtils.consume(response.getEntity());
+                } catch (IOException e) {
+                    throw new RundeckApiException("Failed to consume entity (release connection)", e);
+                }
+                request = new HttpGet(newLocation);
+                try {
+                    response = httpClient.execute(request);
+                } catch (IOException e) {
+                    throw new RundeckApiException("Failed to execute an HTTP GET on url : " + request.getURI(), e);
+                }
+            }
+
             // check the response code (should be 2xx, even in case of error : error message is in the XML result)
             if (response.getStatusLine().getStatusCode() / 100 != 2) {
                 throw new RundeckApiException("Invalid HTTP response '" + response.getStatusLine() + "' for "
