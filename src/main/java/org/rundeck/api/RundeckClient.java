@@ -952,6 +952,7 @@ public class RundeckClient implements Serializable {
      * @return a {@link List} of {@link RundeckExecution} : might be empty, but won't be null
      * @throws RundeckApiException in case of error when calling the API
      * @throws RundeckApiLoginException if the login failed
+     * @see #getRunningExecutions(String)
      */
     public List<RundeckExecution> getRunningExecutions() throws RundeckApiException, RundeckApiLoginException {
         List<RundeckExecution> executions = new ArrayList<RundeckExecution>();
@@ -969,6 +970,7 @@ public class RundeckClient implements Serializable {
      * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
      * @throws RundeckApiLoginException if the login failed
      * @throws IllegalArgumentException if the project is blank (null, empty or whitespace)
+     * @see #getRunningExecutions()
      */
     public List<RundeckExecution> getRunningExecutions(String project) throws RundeckApiException,
             RundeckApiLoginException, IllegalArgumentException {
@@ -986,21 +988,41 @@ public class RundeckClient implements Serializable {
      * @throws RundeckApiException in case of error when calling the API (non-existent job with this ID)
      * @throws RundeckApiLoginException if the login failed
      * @throws IllegalArgumentException if the jobId is blank (null, empty or whitespace)
+     * @see #getJobExecutions(String, ExecutionStatus, Long, Long)
      */
     public List<RundeckExecution> getJobExecutions(String jobId) throws RundeckApiException, RundeckApiLoginException,
             IllegalArgumentException {
-        return getJobExecutions(jobId, null);
+        return getJobExecutions(jobId, (ExecutionStatus) null);
     }
 
     /**
      * Get the executions of the given job
      * 
      * @param jobId identifier of the job - mandatory
-     * @param status of the executions - optional (null for all)
+     * @param status of the executions, see {@link ExecutionStatus} - optional (null for all)
+     * @return a {@link List} of {@link RundeckExecution} : might be empty, but won't be null
+     * @throws RundeckApiException in case of error when calling the API (non-existent job with this ID)
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the jobId is blank (null, empty or whitespace), or the executionStatus is
+     *             invalid
+     * @see #getJobExecutions(String, ExecutionStatus, Long, Long)
+     */
+    public List<RundeckExecution> getJobExecutions(String jobId, String status) throws RundeckApiException,
+            RundeckApiLoginException, IllegalArgumentException {
+        return getJobExecutions(jobId,
+                                StringUtils.isBlank(status) ? null : ExecutionStatus.valueOf(StringUtils.upperCase(status)));
+    }
+
+    /**
+     * Get the executions of the given job
+     * 
+     * @param jobId identifier of the job - mandatory
+     * @param status of the executions, see {@link ExecutionStatus} - optional (null for all)
      * @return a {@link List} of {@link RundeckExecution} : might be empty, but won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent job with this ID)
      * @throws RundeckApiLoginException if the login failed
      * @throws IllegalArgumentException if the jobId is blank (null, empty or whitespace)
+     * @see #getJobExecutions(String, ExecutionStatus, Long, Long)
      */
     public List<RundeckExecution> getJobExecutions(String jobId, ExecutionStatus status) throws RundeckApiException,
             RundeckApiLoginException, IllegalArgumentException {
@@ -1011,7 +1033,29 @@ public class RundeckClient implements Serializable {
      * Get the executions of the given job
      * 
      * @param jobId identifier of the job - mandatory
-     * @param status of the executions - optional (null for all)
+     * @param status of the executions, see {@link ExecutionStatus} - optional (null for all)
+     * @param max number of results to return - optional (null for all)
+     * @param offset the 0-indexed offset for the first result to return - optional
+     * @return a {@link List} of {@link RundeckExecution} : might be empty, but won't be null
+     * @throws RundeckApiException in case of error when calling the API (non-existent job with this ID)
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the jobId is blank (null, empty or whitespace), or the executionStatus is
+     *             invalid
+     * @see #getJobExecutions(String, ExecutionStatus, Long, Long)
+     */
+    public List<RundeckExecution> getJobExecutions(String jobId, String status, Long max, Long offset)
+            throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException {
+        return getJobExecutions(jobId,
+                                StringUtils.isBlank(status) ? null : ExecutionStatus.valueOf(StringUtils.upperCase(status)),
+                                max,
+                                offset);
+    }
+
+    /**
+     * Get the executions of the given job
+     * 
+     * @param jobId identifier of the job - mandatory
+     * @param status of the executions, see {@link ExecutionStatus} - optional (null for all)
      * @param max number of results to return - optional (null for all)
      * @param offset the 0-indexed offset for the first result to return - optional
      * @return a {@link List} of {@link RundeckExecution} : might be empty, but won't be null
