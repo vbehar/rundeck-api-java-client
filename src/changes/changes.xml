@@ -22,7 +22,7 @@
     <author>Vincent Behar</author>
   </properties>
   <body>
-    <release version="1.1" date="Not Yet Released" description="Add missing features">
+    <release version="1.1" date="2011-07-28" description="Import / export jobs">
       <action dev="vbehar" type="add">Import jobs (XML or YAML)</action>
       <action dev="vbehar" type="add">YAML format is now supported when exporting jobs definitions</action>
       <action dev="vbehar" type="add">Support for using an HTTP proxy</action>
