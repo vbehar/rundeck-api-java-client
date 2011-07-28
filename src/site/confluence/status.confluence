@@ -10,7 +10,7 @@ h2. RunDeck API version 1
 * Listing Jobs - OK
 * Running a Job - OK
 * Exporting Jobs - OK (XML only, YAML not supported yet)
-* Importing Jobs - *TODO*
+* Importing Jobs - OK
 * Getting a Job Definition - OK (XML only, YAML not supported yet)
 * Deleting a Job Definition - OK
 * Getting Executions for a Job - OK

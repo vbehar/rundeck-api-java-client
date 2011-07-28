@@ -90,6 +90,16 @@ rundeck.exportJobsToFile("/tmp/jobs.xml", "my-project")
 rundeck.exportJobToFile("/tmp/job.xml", "job-id")
 {code}
 
+h2. Importing jobs
+
+{code}
+import org.rundeck.api.RundeckClient
+rundeck = RundeckClient.new("http://localhost:4440", "admin", "admin")
+
+result = rundeck.importJobs("/tmp/jobs.xml", "xml")
+puts "#{result.succeededJobs.size} jobs successfully imported, #{result.skippedJobs.size} jobs skipped, and #{result.failedJobs.size} jobs failed"
+{code}
+
 h2. And more...
 
 See the API documentation of the [RundeckClient|./apidocs/org/rundeck/api/RundeckClient.html] class for more interactions with your RunDeck instance...

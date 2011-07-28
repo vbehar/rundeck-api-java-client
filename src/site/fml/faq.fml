@@ -36,6 +36,30 @@
         </ul>
       </answer>
     </faq>
+
+  </part>
+
+  <part id="http">
+    <title>HTTP connections to RunDeck</title>
+
+    <faq id="ssl">
+      <question>
+        What about SSL (HTTPS) ?
+      </question>
+      <answer>
+        <p>The lib will trust any certificate when connecting to a RunDeck instance running on HTTPS (even self-signed certificates).</p>
+      </answer>
+    </faq>
+
+    <faq id="proxy">
+      <question>
+        How do I use a proxy ?
+      </question>
+      <answer>
+        <p>See <a href="http://download.oracle.com/javase/6/docs/technotes/guides/net/proxies.html">the Java doc on proxies</a>. You will need a JAVA_OPTS env variable with a value like "-Dhttp.proxyHost=localhost -Dhttp.proxyPort=8888".</p>
+      </answer>
+    </faq>
+
   </part>
 
 </faqs>

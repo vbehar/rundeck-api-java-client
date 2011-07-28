@@ -16,6 +16,7 @@
 package org.rundeck.api;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
@@ -30,6 +31,8 @@ import org.rundeck.api.RundeckApiException.RundeckApiLoginException;
 import org.rundeck.api.domain.RundeckAbort;
 import org.rundeck.api.domain.RundeckExecution;
 import org.rundeck.api.domain.RundeckJob;
+import org.rundeck.api.domain.RundeckJobsImportMethod;
+import org.rundeck.api.domain.RundeckJobsImportResult;
 import org.rundeck.api.domain.RundeckNode;
 import org.rundeck.api.domain.RundeckProject;
 import org.rundeck.api.domain.RundeckSystemInfo;
@@ -37,6 +40,7 @@ import org.rundeck.api.domain.RundeckExecution.ExecutionStatus;
 import org.rundeck.api.parser.AbortParser;
 import org.rundeck.api.parser.ExecutionParser;
 import org.rundeck.api.parser.JobParser;
+import org.rundeck.api.parser.JobsImportResultParser;
 import org.rundeck.api.parser.ListParser;
 import org.rundeck.api.parser.NodeParser;
 import org.rundeck.api.parser.ProjectParser;
@@ -314,6 +318,173 @@ public class RundeckClient implements Serializable {
             IllegalArgumentException {
         AssertUtil.notBlank(jobId, "jobId is mandatory to get the details of a job !");
         return new ApiCall(this).get(new ApiPathBuilder("/job/", jobId));
+    }
+
+    /**
+     * Import the definitions of jobs, from the given file
+     * 
+     * @param filename of the file containing the jobs definitions - mandatory
+     * @param fileType type of the file. See {@link FileType} - mandatory
+     * @return a {@link RundeckJobsImportResult} instance - won't be null
+     * @throws RundeckApiException in case of error when calling the API
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the filename or fileType is blank (null, empty or whitespace), or the
+     *             fileType is invalid
+     * @throws IOException if we failed to read the file
+     * @see #importJobs(InputStream, String)
+     * @see #importJobs(String, FileType, RundeckJobsImportMethod)
+     */
+    public RundeckJobsImportResult importJobs(String filename, String fileType) throws RundeckApiException,
+            RundeckApiLoginException, IllegalArgumentException, IOException {
+        AssertUtil.notBlank(fileType, "fileType is mandatory to import jobs !");
+        return importJobs(filename, FileType.valueOf(StringUtils.upperCase(fileType)));
+    }
+
+    /**
+     * Import the definitions of jobs, from the given file
+     * 
+     * @param filename of the file containing the jobs definitions - mandatory
+     * @param fileType type of the file. See {@link FileType} - mandatory
+     * @return a {@link RundeckJobsImportResult} instance - won't be null
+     * @throws RundeckApiException in case of error when calling the API
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the filename is blank (null, empty or whitespace), or the fileType is null
+     * @throws IOException if we failed to read the file
+     * @see #importJobs(InputStream, FileType)
+     * @see #importJobs(String, FileType, RundeckJobsImportMethod)
+     */
+    public RundeckJobsImportResult importJobs(String filename, FileType fileType) throws RundeckApiException,
+            RundeckApiLoginException, IllegalArgumentException, IOException {
+        return importJobs(filename, fileType, (RundeckJobsImportMethod) null);
+    }
+
+    /**
+     * Import the definitions of jobs, from the given file, using the given behavior
+     * 
+     * @param filename of the file containing the jobs definitions - mandatory
+     * @param fileType type of the file. See {@link FileType} - mandatory
+     * @param importBehavior see {@link RundeckJobsImportMethod}
+     * @return a {@link RundeckJobsImportResult} instance - won't be null
+     * @throws RundeckApiException in case of error when calling the API
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the filename or fileType is blank (null, empty or whitespace), or the
+     *             fileType or behavior is not valid
+     * @throws IOException if we failed to read the file
+     * @see #importJobs(InputStream, String, String)
+     * @see #importJobs(String, FileType, RundeckJobsImportMethod)
+     */
+    public RundeckJobsImportResult importJobs(String filename, String fileType, String importBehavior)
+            throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException, IOException {
+        AssertUtil.notBlank(fileType, "fileType is mandatory to import jobs !");
+        return importJobs(filename,
+                          FileType.valueOf(StringUtils.upperCase(fileType)),
+                          RundeckJobsImportMethod.valueOf(StringUtils.upperCase(importBehavior)));
+    }
+
+    /**
+     * Import the definitions of jobs, from the given file, using the given behavior
+     * 
+     * @param filename of the file containing the jobs definitions - mandatory
+     * @param fileType type of the file. See {@link FileType} - mandatory
+     * @param importBehavior see {@link RundeckJobsImportMethod}
+     * @return a {@link RundeckJobsImportResult} instance - won't be null
+     * @throws RundeckApiException in case of error when calling the API
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the filename is blank (null, empty or whitespace), or the fileType is null
+     * @throws IOException if we failed to read the file
+     * @see #importJobs(InputStream, FileType, RundeckJobsImportMethod)
+     */
+    public RundeckJobsImportResult importJobs(String filename, FileType fileType, RundeckJobsImportMethod importBehavior)
+            throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException, IOException {
+        AssertUtil.notBlank(filename, "filename (of jobs file) is mandatory to import jobs !");
+        FileInputStream stream = null;
+        try {
+            stream = FileUtils.openInputStream(new File(filename));
+            return importJobs(stream, fileType, importBehavior);
+        } finally {
+            IOUtils.closeQuietly(stream);
+        }
+    }
+
+    /**
+     * Import the definitions of jobs, from the given input stream
+     * 
+     * @param stream inputStream for reading the definitions - mandatory
+     * @param fileType type of the file. See {@link FileType} - mandatory
+     * @return a {@link RundeckJobsImportResult} instance - won't be null
+     * @throws RundeckApiException in case of error when calling the API
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the stream is null, or the fileType is blank (null, empty or whitespace) or
+     *             invalid
+     * @see #importJobs(String, String)
+     * @see #importJobs(InputStream, FileType, RundeckJobsImportMethod)
+     */
+    public RundeckJobsImportResult importJobs(InputStream stream, String fileType) throws RundeckApiException,
+            RundeckApiLoginException, IllegalArgumentException {
+        AssertUtil.notBlank(fileType, "fileType is mandatory to import jobs !");
+        return importJobs(stream, FileType.valueOf(StringUtils.upperCase(fileType)));
+    }
+
+    /**
+     * Import the definitions of jobs, from the given input stream
+     * 
+     * @param stream inputStream for reading the definitions - mandatory
+     * @param fileType type of the file. See {@link FileType} - mandatory
+     * @return a {@link RundeckJobsImportResult} instance - won't be null
+     * @throws RundeckApiException in case of error when calling the API
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the stream or fileType is null
+     * @see #importJobs(String, FileType)
+     * @see #importJobs(InputStream, FileType, RundeckJobsImportMethod)
+     */
+    public RundeckJobsImportResult importJobs(InputStream stream, FileType fileType) throws RundeckApiException,
+            RundeckApiLoginException, IllegalArgumentException {
+        return importJobs(stream, fileType, (RundeckJobsImportMethod) null);
+    }
+
+    /**
+     * Import the definitions of jobs, from the given input stream, using the given behavior
+     * 
+     * @param stream inputStream for reading the definitions - mandatory
+     * @param fileType type of the file. See {@link FileType} - mandatory
+     * @param importBehavior see {@link RundeckJobsImportMethod}
+     * @return a {@link RundeckJobsImportResult} instance - won't be null
+     * @throws RundeckApiException in case of error when calling the API
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the stream is null, or the fileType is blank (null, empty or whitespace), or
+     *             the fileType or behavior is not valid
+     * @see #importJobs(String, String, String)
+     * @see #importJobs(InputStream, FileType, RundeckJobsImportMethod)
+     */
+    public RundeckJobsImportResult importJobs(InputStream stream, String fileType, String importBehavior)
+            throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException {
+        AssertUtil.notBlank(fileType, "fileType is mandatory to import jobs !");
+        return importJobs(stream,
+                          FileType.valueOf(StringUtils.upperCase(fileType)),
+                          RundeckJobsImportMethod.valueOf(StringUtils.upperCase(importBehavior)));
+    }
+
+    /**
+     * Import the definitions of jobs, from the given input stream, using the given behavior
+     * 
+     * @param stream inputStream for reading the definitions - mandatory
+     * @param fileType type of the file. See {@link FileType} - mandatory
+     * @param importBehavior see {@link RundeckJobsImportMethod}
+     * @return a {@link RundeckJobsImportResult} instance - won't be null
+     * @throws RundeckApiException in case of error when calling the API
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the stream or fileType is null
+     * @see #importJobs(String, FileType, RundeckJobsImportMethod)
+     */
+    public RundeckJobsImportResult importJobs(InputStream stream, FileType fileType,
+            RundeckJobsImportMethod importBehavior) throws RundeckApiException, RundeckApiLoginException,
+            IllegalArgumentException {
+        AssertUtil.notNull(stream, "inputStream of jobs is mandatory to import jobs !");
+        AssertUtil.notNull(fileType, "fileType is mandatory to import jobs !");
+        return new ApiCall(this).post(new ApiPathBuilder("/jobs/import").param("format", fileType)
+                                                                        .param("dupeOption", importBehavior)
+                                                                        .attach("xmlBatch", stream),
+                                      new JobsImportResultParser("result"));
     }
 
     /**
@@ -851,8 +1022,7 @@ public class RundeckClient implements Serializable {
     public List<RundeckExecution> getJobExecutions(String jobId, ExecutionStatus status, Long max, Long offset)
             throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException {
         AssertUtil.notBlank(jobId, "jobId is mandatory to get the executions of a job !");
-        return new ApiCall(this).get(new ApiPathBuilder("/job/", jobId, "/executions").param("status",
-                                                                                             status != null ? StringUtils.lowerCase(status.toString()) : null)
+        return new ApiCall(this).get(new ApiPathBuilder("/job/", jobId, "/executions").param("status", status)
                                                                                       .param("max", max)
                                                                                       .param("offset", offset),
                                      new ListParser<RundeckExecution>(new ExecutionParser(),

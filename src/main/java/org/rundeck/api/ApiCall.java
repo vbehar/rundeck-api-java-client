@@ -18,6 +18,7 @@ package org.rundeck.api;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.ProxySelector;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -26,6 +27,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map.Entry;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
@@ -39,7 +41,11 @@ import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.conn.scheme.Scheme;
 import org.apache.http.conn.ssl.SSLSocketFactory;
 import org.apache.http.conn.ssl.TrustStrategy;
+import org.apache.http.entity.mime.HttpMultipartMode;
+import org.apache.http.entity.mime.MultipartEntity;
+import org.apache.http.entity.mime.content.InputStreamBody;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.impl.conn.ProxySelectorRoutePlanner;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.protocol.HTTP;
 import org.apache.http.util.EntityUtils;
@@ -136,6 +142,30 @@ class ApiCall {
         response.reset();
 
         return response;
+    }
+
+    /**
+     * Execute an HTTP POST request to the RunDeck instance, on the given path. We will login first, and then execute
+     * the API call. At the end, the given parser will be used to convert the response to a more useful result object.
+     * 
+     * @param apiPath on which we will make the HTTP request - see {@link ApiPathBuilder}
+     * @param parser used to parse the response
+     * @return the result of the call, as formatted by the parser
+     * @throws RundeckApiException in case of error when calling the API
+     * @throws RundeckApiLoginException if the login fails
+     */
+    public <T> T post(ApiPathBuilder apiPath, XmlNodeParser<T> parser) throws RundeckApiException,
+            RundeckApiLoginException {
+        HttpPost httpPost = new HttpPost(client.getUrl() + RundeckClient.API_ENDPOINT + apiPath);
+
+        // POST a multi-part request, with all attachments
+        MultipartEntity entity = new MultipartEntity(HttpMultipartMode.BROWSER_COMPATIBLE);
+        for (Entry<String, InputStream> attachment : apiPath.getAttachments().entrySet()) {
+            entity.addPart(attachment.getKey(), new InputStreamBody(attachment.getValue(), attachment.getKey()));
+        }
+        httpPost.setEntity(entity);
+
+        return execute(httpPost, parser);
     }
 
     /**
@@ -316,6 +346,9 @@ class ApiCall {
      * @return an {@link HttpClient} instance - won't be null
      */
     private HttpClient instantiateHttpClient() {
+        DefaultHttpClient httpClient = new DefaultHttpClient();
+
+        // configure SSL
         SSLSocketFactory socketFactory = null;
         try {
             socketFactory = new SSLSocketFactory(new TrustStrategy() {
@@ -334,9 +367,13 @@ class ApiCall {
         } catch (KeyStoreException e) {
             throw new RuntimeException(e);
         }
-
-        HttpClient httpClient = new DefaultHttpClient();
         httpClient.getConnectionManager().getSchemeRegistry().register(new Scheme("https", 443, socketFactory));
+
+        // configure proxy (use system env : http.proxyHost / http.proxyPort)
+        System.setProperty("java.net.useSystemProxies", "true");
+        httpClient.setRoutePlanner(new ProxySelectorRoutePlanner(httpClient.getConnectionManager().getSchemeRegistry(),
+                                                                 ProxySelector.getDefault()));
+
         return httpClient;
     }
 }

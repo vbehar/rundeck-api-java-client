@@ -15,6 +15,9 @@
  */
 package org.rundeck.api;
 
+import java.io.InputStream;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 import org.apache.commons.lang.StringUtils;
 import org.rundeck.api.util.ParametersUtil;
@@ -29,7 +32,10 @@ class ApiPathBuilder {
     /** Internally, we store everything in a {@link StringBuilder} */
     private final StringBuilder apiPath;
 
-    /** Maker for using the right separator between parameters ("?" or "&") */
+    /** When POSTing, we can add attachments */
+    private final Map<String, InputStream> attachments;
+
+    /** Marker for using the right separator between parameters ("?" or "&") */
     private boolean firstParamDone = false;
 
     /**
@@ -40,6 +46,7 @@ class ApiPathBuilder {
      */
     public ApiPathBuilder(String... paths) {
         apiPath = new StringBuilder();
+        attachments = new HashMap<String, InputStream>();
         if (paths != null) {
             for (String path : paths) {
                 if (StringUtils.isNotBlank(path)) {
@@ -64,6 +71,22 @@ class ApiPathBuilder {
             append(key);
             append("=");
             append(ParametersUtil.urlEncode(value));
+        }
+        return this;
+    }
+
+    /**
+     * Append the given parameter (key and value). This will only append the parameter if it is not null, and make sure
+     * to add the right separator ("?" or "&") before. The key and value will be separated by the "=" character. Also,
+     * the value will be converted to lower-case.
+     * 
+     * @param key of the parameter. Must not be null or empty
+     * @param value of the parameter. May be null
+     * @return this, for method chaining
+     */
+    public ApiPathBuilder param(String key, Enum<?> value) {
+        if (value != null) {
+            param(key, StringUtils.lowerCase(value.toString()));
         }
         return this;
     }
@@ -127,6 +150,28 @@ class ApiPathBuilder {
             append(filters);
         }
         return this;
+    }
+
+    /**
+     * When POSTing a request, add the given {@link InputStream} as an attachment to the content of the request. This
+     * will only add the stream if it is not null.
+     * 
+     * @param name of the attachment. Must not be null or empty
+     * @param stream. May be null
+     * @return this, for method chaining
+     */
+    public ApiPathBuilder attach(String name, InputStream stream) {
+        if (stream != null) {
+            attachments.put(name, stream);
+        }
+        return this;
+    }
+
+    /**
+     * @return all attachments to be POSTed, with their names
+     */
+    public Map<String, InputStream> getAttachments() {
+        return attachments;
     }
 
     @Override
