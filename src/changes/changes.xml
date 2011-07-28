@@ -23,7 +23,8 @@
   </properties>
   <body>
     <release version="1.1" date="Not Yet Released" description="Add missing features">
-      <action dev="vbehar" type="add">Import jobs</action>
+      <action dev="vbehar" type="add">Import jobs (XML or YAML)</action>
+      <action dev="vbehar" type="add">YAML format is now supported when exporting jobs definitions</action>
       <action dev="vbehar" type="add">Support for using an HTTP proxy</action>
     </release>
     <release version="1.0" date="2011-07-08" description="Use RunDeck REST API version 1 (RunDeck 1.2+)">
