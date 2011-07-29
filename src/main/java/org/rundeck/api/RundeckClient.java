@@ -75,18 +75,25 @@ public class RundeckClient implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
+    /** Version of the API supported */
     public static final transient int API_VERSION = 1;
 
+    /** End-point of the API */
     public static final transient String API_ENDPOINT = "/api/" + API_VERSION;
 
+    /** Default value for the "pooling interval" used when running jobs/commands/scripts */
     private static final transient long DEFAULT_POOLING_INTERVAL = 5;
 
+    /** Default unit of the "pooling interval" used when running jobs/commands/scripts */
     private static final transient TimeUnit DEFAULT_POOLING_UNIT = TimeUnit.SECONDS;
 
+    /** URL of the RunDeck instance ("http://localhost:4440", "http://rundeck.your-compagny.com/", etc) */
     private final String url;
 
+    /** Login to use for authentication on the RunDeck instance */
     private final String login;
 
+    /** Password to use for authentication on the RunDeck instance */
     private final String password;
 
     /**
@@ -1973,21 +1980,30 @@ public class RundeckClient implements Serializable {
         return new ApiCall(this).get(new ApiPathBuilder("/system/info"), new SystemInfoParser("result/system"));
     }
 
+    /**
+     * @return the URL of the RunDeck instance ("http://localhost:4440", "http://rundeck.your-compagny.com/", etc)
+     */
     public String getUrl() {
         return url;
     }
 
+    /**
+     * @return the login used for authentication on the RunDeck instance
+     */
     public String getLogin() {
         return login;
     }
 
+    /**
+     * @return the password used for authentication on the RunDeck instance
+     */
     public String getPassword() {
         return password;
     }
 
     @Override
     public String toString() {
-        return "RundeckClient [url=" + url + ", login=" + login + ", password=" + password + "]";
+        return "RundeckClient " + API_VERSION + " [" + url + "] (credentials=" + login + "|" + password + ")";
     }
 
     @Override
