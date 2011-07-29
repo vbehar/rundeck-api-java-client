@@ -18,7 +18,7 @@ h2. RunDeck API version 1
 * Getting Execution Info - OK
 * Aborting Executions - OK
 * Running Adhoc Commands - OK
-* Running Adhoc Scripts - *TODO*
+* Running Adhoc Scripts - OK
 * Listing Projects - OK
 * Getting Project Info - OK
 * Listing History - *TODO*

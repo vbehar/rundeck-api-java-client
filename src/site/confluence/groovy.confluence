@@ -75,6 +75,19 @@ execution = rundeck.triggerAdhocCommand("my-project", "uptime")
 execution = rundeck.runAdhocCommand("my-project", "uptime", new Properties(os-family: "unix"))
 {code}
 
+h2. Running an ad-hoc script
+
+{code}
+import org.rundeck.api.RundeckClient
+rundeck = new RundeckClient("http://localhost:4440", "admin", "admin")
+
+// trigger the execution of a custom bash script on the RunDeck server
+execution = rundeck.triggerAdhocScript("my-project", "/tmp/my-script.sh")
+
+// run a bash script (with options) on all unix nodes
+execution = rundeck.runAdhocCommand("my-project", "/tmp/my-script-with-options.sh", new Properties(option1: "value one"), new Properties(os-family: "unix"))
+{code}
+
 h2. Exporting jobs
 
 {code}

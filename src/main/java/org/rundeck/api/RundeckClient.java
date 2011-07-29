@@ -79,6 +79,10 @@ public class RundeckClient implements Serializable {
 
     public static final transient String API_ENDPOINT = "/api/" + API_VERSION;
 
+    private static final transient long DEFAULT_POOLING_INTERVAL = 5;
+
+    private static final transient TimeUnit DEFAULT_POOLING_UNIT = TimeUnit.SECONDS;
+
     private final String url;
 
     private final String login;
@@ -802,7 +806,7 @@ public class RundeckClient implements Serializable {
      */
     public RundeckExecution runJob(String jobId, Properties options, Properties nodeFilters)
             throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException {
-        return runJob(jobId, options, nodeFilters, 5, TimeUnit.SECONDS);
+        return runJob(jobId, options, nodeFilters, DEFAULT_POOLING_INTERVAL, DEFAULT_POOLING_UNIT);
     }
 
     /**
@@ -847,11 +851,11 @@ public class RundeckClient implements Serializable {
     public RundeckExecution runJob(String jobId, Properties options, Properties nodeFilters, long poolingInterval,
             TimeUnit poolingUnit) throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException {
         if (poolingInterval <= 0) {
-            poolingInterval = 5;
-            poolingUnit = TimeUnit.SECONDS;
+            poolingInterval = DEFAULT_POOLING_INTERVAL;
+            poolingUnit = DEFAULT_POOLING_UNIT;
         }
         if (poolingUnit == null) {
-            poolingUnit = TimeUnit.SECONDS;
+            poolingUnit = DEFAULT_POOLING_UNIT;
         }
 
         RundeckExecution execution = triggerJob(jobId, options, nodeFilters);
@@ -1045,7 +1049,13 @@ public class RundeckClient implements Serializable {
     public RundeckExecution runAdhocCommand(String project, String command, Properties nodeFilters,
             Integer nodeThreadcount, Boolean nodeKeepgoing) throws RundeckApiException, RundeckApiLoginException,
             IllegalArgumentException {
-        return runAdhocCommand(project, command, nodeFilters, nodeThreadcount, nodeKeepgoing, 5, TimeUnit.SECONDS);
+        return runAdhocCommand(project,
+                               command,
+                               nodeFilters,
+                               nodeThreadcount,
+                               nodeKeepgoing,
+                               DEFAULT_POOLING_INTERVAL,
+                               DEFAULT_POOLING_UNIT);
     }
 
     /**
@@ -1071,14 +1081,639 @@ public class RundeckClient implements Serializable {
             Integer nodeThreadcount, Boolean nodeKeepgoing, long poolingInterval, TimeUnit poolingUnit)
             throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException {
         if (poolingInterval <= 0) {
-            poolingInterval = 5;
-            poolingUnit = TimeUnit.SECONDS;
+            poolingInterval = DEFAULT_POOLING_INTERVAL;
+            poolingUnit = DEFAULT_POOLING_UNIT;
         }
         if (poolingUnit == null) {
-            poolingUnit = TimeUnit.SECONDS;
+            poolingUnit = DEFAULT_POOLING_UNIT;
         }
 
         RundeckExecution execution = triggerAdhocCommand(project, command, nodeFilters, nodeThreadcount, nodeKeepgoing);
+        while (ExecutionStatus.RUNNING.equals(execution.getStatus())) {
+            try {
+                Thread.sleep(poolingUnit.toMillis(poolingInterval));
+            } catch (InterruptedException e) {
+                break;
+            }
+            execution = getExecution(execution.getId());
+        }
+        return execution;
+    }
+
+    /*
+     * Ad-hoc scripts
+     */
+
+    /**
+     * Trigger the execution of an ad-hoc script, and return immediately (without waiting the end of the execution). The
+     * script will not be dispatched to nodes, but be executed on the RunDeck server.
+     * 
+     * @param project name of the project - mandatory
+     * @param scriptFilename filename of the script to be executed - mandatory
+     * @return a {@link RundeckExecution} instance for the newly created (and running) execution - won't be null
+     * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the project or scriptFilename is blank (null, empty or whitespace)
+     * @throws IOException if we failed to read the file
+     * @see #triggerAdhocScript(String, String, Properties, Properties, Integer, Boolean)
+     * @see #runAdhocScript(String, String)
+     */
+    public RundeckExecution triggerAdhocScript(String project, String scriptFilename) throws RundeckApiException,
+            RundeckApiLoginException, IllegalArgumentException, IOException {
+        return triggerAdhocScript(project, scriptFilename, null);
+    }
+
+    /**
+     * Trigger the execution of an ad-hoc script, and return immediately (without waiting the end of the execution). The
+     * script will not be dispatched to nodes, but be executed on the RunDeck server.
+     * 
+     * @param project name of the project - mandatory
+     * @param scriptFilename filename of the script to be executed - mandatory
+     * @param options of the script - optional. See {@link OptionsBuilder}.
+     * @return a {@link RundeckExecution} instance for the newly created (and running) execution - won't be null
+     * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the project or scriptFilename is blank (null, empty or whitespace)
+     * @throws IOException if we failed to read the file
+     * @see #triggerAdhocScript(String, String, Properties, Properties, Integer, Boolean)
+     * @see #runAdhocScript(String, String, Properties)
+     */
+    public RundeckExecution triggerAdhocScript(String project, String scriptFilename, Properties options)
+            throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException, IOException {
+        return triggerAdhocScript(project, scriptFilename, options, null);
+    }
+
+    /**
+     * Trigger the execution of an ad-hoc script, and return immediately (without waiting the end of the execution). The
+     * script will be dispatched to nodes, accordingly to the nodeFilters parameter.
+     * 
+     * @param project name of the project - mandatory
+     * @param scriptFilename filename of the script to be executed - mandatory
+     * @param options of the script - optional. See {@link OptionsBuilder}.
+     * @param nodeFilters for selecting nodes on which the command will be executed. See {@link NodeFiltersBuilder}
+     * @return a {@link RundeckExecution} instance for the newly created (and running) execution - won't be null
+     * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the project or scriptFilename is blank (null, empty or whitespace)
+     * @throws IOException if we failed to read the file
+     * @see #triggerAdhocScript(String, String, Properties, Properties, Integer, Boolean)
+     * @see #runAdhocScript(String, String, Properties, Properties)
+     */
+    public RundeckExecution triggerAdhocScript(String project, String scriptFilename, Properties options,
+            Properties nodeFilters) throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException,
+            IOException {
+        return triggerAdhocScript(project, scriptFilename, options, nodeFilters, null, null);
+    }
+
+    /**
+     * Trigger the execution of an ad-hoc script, and return immediately (without waiting the end of the execution). The
+     * script will be dispatched to nodes, accordingly to the nodeFilters parameter.
+     * 
+     * @param project name of the project - mandatory
+     * @param scriptFilename filename of the script to be executed - mandatory
+     * @param options of the script - optional. See {@link OptionsBuilder}.
+     * @param nodeFilters for selecting nodes on which the command will be executed. See {@link NodeFiltersBuilder}
+     * @param nodeThreadcount thread count to use (for parallelizing when running on multiple nodes) - optional
+     * @param nodeKeepgoing if true, continue executing on other nodes even if some fail - optional
+     * @return a {@link RundeckExecution} instance for the newly created (and running) execution - won't be null
+     * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the project or scriptFilename is blank (null, empty or whitespace)
+     * @throws IOException if we failed to read the file
+     * @see #triggerAdhocScript(String, InputStream, Properties, Properties, Integer, Boolean)
+     * @see #runAdhocScript(String, String, Properties, Properties, Integer, Boolean, long, TimeUnit)
+     */
+    public RundeckExecution triggerAdhocScript(String project, String scriptFilename, Properties options,
+            Properties nodeFilters, Integer nodeThreadcount, Boolean nodeKeepgoing) throws RundeckApiException,
+            RundeckApiLoginException, IllegalArgumentException, IOException {
+        AssertUtil.notBlank(scriptFilename, "scriptFilename is mandatory to trigger an ad-hoc script !");
+        FileInputStream stream = null;
+        try {
+            stream = FileUtils.openInputStream(new File(scriptFilename));
+            return triggerAdhocScript(project, stream, options, nodeFilters, nodeThreadcount, nodeKeepgoing);
+        } finally {
+            IOUtils.closeQuietly(stream);
+        }
+    }
+
+    /**
+     * Trigger the execution of an ad-hoc script, and return immediately (without waiting the end of the execution). The
+     * script will not be dispatched to nodes, but be executed on the RunDeck server.
+     * 
+     * @param project name of the project - mandatory
+     * @param script inputStream for reading the script to be executed - mandatory
+     * @return a {@link RundeckExecution} instance for the newly created (and running) execution - won't be null
+     * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the project is blank (null, empty or whitespace) or the script is null
+     * @see #triggerAdhocScript(String, InputStream, Properties, Properties, Integer, Boolean)
+     * @see #runAdhocScript(String, InputStream)
+     */
+    public RundeckExecution triggerAdhocScript(String project, InputStream script) throws RundeckApiException,
+            RundeckApiLoginException, IllegalArgumentException {
+        return triggerAdhocScript(project, script, null);
+    }
+
+    /**
+     * Trigger the execution of an ad-hoc script, and return immediately (without waiting the end of the execution). The
+     * script will not be dispatched to nodes, but be executed on the RunDeck server.
+     * 
+     * @param project name of the project - mandatory
+     * @param script inputStream for reading the script to be executed - mandatory
+     * @param options of the script - optional. See {@link OptionsBuilder}.
+     * @return a {@link RundeckExecution} instance for the newly created (and running) execution - won't be null
+     * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the project is blank (null, empty or whitespace) or the script is null
+     * @see #triggerAdhocScript(String, InputStream, Properties, Properties, Integer, Boolean)
+     * @see #runAdhocScript(String, InputStream, Properties)
+     */
+    public RundeckExecution triggerAdhocScript(String project, InputStream script, Properties options)
+            throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException {
+        return triggerAdhocScript(project, script, options, null);
+    }
+
+    /**
+     * Trigger the execution of an ad-hoc script, and return immediately (without waiting the end of the execution). The
+     * script will be dispatched to nodes, accordingly to the nodeFilters parameter.
+     * 
+     * @param project name of the project - mandatory
+     * @param script inputStream for reading the script to be executed - mandatory
+     * @param options of the script - optional. See {@link OptionsBuilder}.
+     * @param nodeFilters for selecting nodes on which the command will be executed. See {@link NodeFiltersBuilder}
+     * @return a {@link RundeckExecution} instance for the newly created (and running) execution - won't be null
+     * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the project is blank (null, empty or whitespace) or the script is null
+     * @see #triggerAdhocScript(String, InputStream, Properties, Properties, Integer, Boolean)
+     * @see #runAdhocScript(String, InputStream, Properties, Properties)
+     */
+    public RundeckExecution triggerAdhocScript(String project, InputStream script, Properties options,
+            Properties nodeFilters) throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException {
+        return triggerAdhocScript(project, script, options, nodeFilters, null, null);
+    }
+
+    /**
+     * Trigger the execution of an ad-hoc script, and return immediately (without waiting the end of the execution). The
+     * script will be dispatched to nodes, accordingly to the nodeFilters parameter.
+     * 
+     * @param project name of the project - mandatory
+     * @param script inputStream for reading the script to be executed - mandatory
+     * @param options of the script - optional. See {@link OptionsBuilder}.
+     * @param nodeFilters for selecting nodes on which the command will be executed. See {@link NodeFiltersBuilder}
+     * @param nodeThreadcount thread count to use (for parallelizing when running on multiple nodes) - optional
+     * @param nodeKeepgoing if true, continue executing on other nodes even if some fail - optional
+     * @return a {@link RundeckExecution} instance for the newly created (and running) execution - won't be null
+     * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the project is blank (null, empty or whitespace) or the script is null
+     * @see #triggerAdhocScript(String, String, Properties, Properties, Integer, Boolean)
+     * @see #runAdhocScript(String, InputStream, Properties, Properties, Integer, Boolean, long, TimeUnit)
+     */
+    public RundeckExecution triggerAdhocScript(String project, InputStream script, Properties options,
+            Properties nodeFilters, Integer nodeThreadcount, Boolean nodeKeepgoing) throws RundeckApiException,
+            RundeckApiLoginException, IllegalArgumentException {
+        AssertUtil.notBlank(project, "project is mandatory to trigger an ad-hoc script !");
+        AssertUtil.notNull(script, "script is mandatory to trigger an ad-hoc script !");
+        RundeckExecution execution = new ApiCall(this).post(new ApiPathBuilder("/run/script").param("project", project)
+                                                                                             .attach("scriptFile",
+                                                                                                     script)
+                                                                                             .param("argString",
+                                                                                                    ParametersUtil.generateArgString(options))
+                                                                                             .param("nodeThreadcount",
+                                                                                                    nodeThreadcount)
+                                                                                             .param("nodeKeepgoing",
+                                                                                                    nodeKeepgoing)
+                                                                                             .nodeFilters(nodeFilters),
+                                                            new ExecutionParser("result/execution"));
+        // the first call just returns the ID of the execution, so we need another call to get a "real" execution
+        return getExecution(execution.getId());
+    }
+
+    /**
+     * Run an ad-hoc script, and wait until its execution is finished (or aborted) to return. We will poll the RunDeck
+     * server at regular interval (every 5 seconds) to know if the execution is finished (or aborted) or is still
+     * running. The script will not be dispatched to nodes, but be executed on the RunDeck server.
+     * 
+     * @param project name of the project - mandatory
+     * @param scriptFilename filename of the script to be executed - mandatory
+     * @return a {@link RundeckExecution} instance for the (finished/aborted) execution - won't be null
+     * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the project or scriptFilename is blank (null, empty or whitespace)
+     * @throws IOException if we failed to read the file
+     * @see #runAdhocScript(String, String, Properties, Properties, Integer, Boolean, long, TimeUnit)
+     * @see #triggerAdhocScript(String, String)
+     */
+    public RundeckExecution runAdhocScript(String project, String scriptFilename) throws RundeckApiException,
+            RundeckApiLoginException, IllegalArgumentException, IOException {
+        return runAdhocScript(project, scriptFilename, null);
+    }
+
+    /**
+     * Run an ad-hoc script, and wait until its execution is finished (or aborted) to return. We will poll the RunDeck
+     * server at regular interval (configured by the poolingInterval/poolingUnit couple) to know if the execution is
+     * finished (or aborted) or is still running. The script will not be dispatched to nodes, but be executed on the
+     * RunDeck server.
+     * 
+     * @param project name of the project - mandatory
+     * @param scriptFilename filename of the script to be executed - mandatory
+     * @param poolingInterval for checking the status of the execution. Must be > 0.
+     * @param poolingUnit unit (seconds, milli-seconds, ...) of the interval. Default to seconds.
+     * @return a {@link RundeckExecution} instance for the (finished/aborted) execution - won't be null
+     * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the project or scriptFilename is blank (null, empty or whitespace)
+     * @throws IOException if we failed to read the file
+     * @see #runAdhocScript(String, String, Properties, Properties, Integer, Boolean, long, TimeUnit)
+     * @see #triggerAdhocScript(String, String)
+     */
+    public RundeckExecution runAdhocScript(String project, String scriptFilename, long poolingInterval,
+            TimeUnit poolingUnit) throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException,
+            IOException {
+        return runAdhocScript(project, scriptFilename, null, poolingInterval, poolingUnit);
+    }
+
+    /**
+     * Run an ad-hoc script, and wait until its execution is finished (or aborted) to return. We will poll the RunDeck
+     * server at regular interval (every 5 seconds) to know if the execution is finished (or aborted) or is still
+     * running. The script will not be dispatched to nodes, but be executed on the RunDeck server.
+     * 
+     * @param project name of the project - mandatory
+     * @param scriptFilename filename of the script to be executed - mandatory
+     * @param options of the script - optional. See {@link OptionsBuilder}.
+     * @return a {@link RundeckExecution} instance for the (finished/aborted) execution - won't be null
+     * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the project or scriptFilename is blank (null, empty or whitespace)
+     * @throws IOException if we failed to read the file
+     * @see #runAdhocScript(String, String, Properties, Properties, Integer, Boolean, long, TimeUnit)
+     * @see #triggerAdhocScript(String, String, Properties)
+     */
+    public RundeckExecution runAdhocScript(String project, String scriptFilename, Properties options)
+            throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException, IOException {
+        return runAdhocScript(project, scriptFilename, options, null);
+    }
+
+    /**
+     * Run an ad-hoc script, and wait until its execution is finished (or aborted) to return. We will poll the RunDeck
+     * server at regular interval (configured by the poolingInterval/poolingUnit couple) to know if the execution is
+     * finished (or aborted) or is still running. The script will not be dispatched to nodes, but be executed on the
+     * RunDeck server.
+     * 
+     * @param project name of the project - mandatory
+     * @param scriptFilename filename of the script to be executed - mandatory
+     * @param options of the script - optional. See {@link OptionsBuilder}.
+     * @param poolingInterval for checking the status of the execution. Must be > 0.
+     * @param poolingUnit unit (seconds, milli-seconds, ...) of the interval. Default to seconds.
+     * @return a {@link RundeckExecution} instance for the (finished/aborted) execution - won't be null
+     * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the project or scriptFilename is blank (null, empty or whitespace)
+     * @throws IOException if we failed to read the file
+     * @see #runAdhocScript(String, String, Properties, Properties, Integer, Boolean, long, TimeUnit)
+     * @see #triggerAdhocScript(String, String, Properties)
+     */
+    public RundeckExecution runAdhocScript(String project, String scriptFilename, Properties options,
+            long poolingInterval, TimeUnit poolingUnit) throws RundeckApiException, RundeckApiLoginException,
+            IllegalArgumentException, IOException {
+        return runAdhocScript(project, scriptFilename, options, null, poolingInterval, poolingUnit);
+    }
+
+    /**
+     * Run an ad-hoc script, and wait until its execution is finished (or aborted) to return. We will poll the RunDeck
+     * server at regular interval (every 5 seconds) to know if the execution is finished (or aborted) or is still
+     * running. The script will be dispatched to nodes, accordingly to the nodeFilters parameter.
+     * 
+     * @param project name of the project - mandatory
+     * @param scriptFilename filename of the script to be executed - mandatory
+     * @param options of the script - optional. See {@link OptionsBuilder}.
+     * @param nodeFilters for selecting nodes on which the script will be executed. See {@link NodeFiltersBuilder}
+     * @return a {@link RundeckExecution} instance for the (finished/aborted) execution - won't be null
+     * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the project or scriptFilename is blank (null, empty or whitespace)
+     * @throws IOException if we failed to read the file
+     * @see #runAdhocScript(String, String, Properties, Properties, Integer, Boolean, long, TimeUnit)
+     * @see #triggerAdhocScript(String, String, Properties, Properties)
+     */
+    public RundeckExecution runAdhocScript(String project, String scriptFilename, Properties options,
+            Properties nodeFilters) throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException,
+            IOException {
+        return runAdhocScript(project, scriptFilename, options, nodeFilters, null, null);
+    }
+
+    /**
+     * Run an ad-hoc script, and wait until its execution is finished (or aborted) to return. We will poll the RunDeck
+     * server at regular interval (configured by the poolingInterval/poolingUnit couple) to know if the execution is
+     * finished (or aborted) or is still running. The script will be dispatched to nodes, accordingly to the nodeFilters
+     * parameter.
+     * 
+     * @param project name of the project - mandatory
+     * @param scriptFilename filename of the script to be executed - mandatory
+     * @param options of the script - optional. See {@link OptionsBuilder}.
+     * @param nodeFilters for selecting nodes on which the script will be executed. See {@link NodeFiltersBuilder}
+     * @param poolingInterval for checking the status of the execution. Must be > 0.
+     * @param poolingUnit unit (seconds, milli-seconds, ...) of the interval. Default to seconds.
+     * @return a {@link RundeckExecution} instance for the (finished/aborted) execution - won't be null
+     * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the project or scriptFilename is blank (null, empty or whitespace)
+     * @throws IOException if we failed to read the file
+     * @see #runAdhocScript(String, String, Properties, Properties, Integer, Boolean, long, TimeUnit)
+     * @see #triggerAdhocScript(String, String, Properties, Properties)
+     */
+    public RundeckExecution runAdhocScript(String project, String scriptFilename, Properties options,
+            Properties nodeFilters, long poolingInterval, TimeUnit poolingUnit) throws RundeckApiException,
+            RundeckApiLoginException, IllegalArgumentException, IOException {
+        return runAdhocScript(project, scriptFilename, options, nodeFilters, null, null, poolingInterval, poolingUnit);
+    }
+
+    /**
+     * Run an ad-hoc script, and wait until its execution is finished (or aborted) to return. We will poll the RunDeck
+     * server at regular interval (every 5 seconds) to know if the execution is finished (or aborted) or is still
+     * running. The script will be dispatched to nodes, accordingly to the nodeFilters parameter.
+     * 
+     * @param project name of the project - mandatory
+     * @param scriptFilename filename of the script to be executed - mandatory
+     * @param options of the script - optional. See {@link OptionsBuilder}.
+     * @param nodeFilters for selecting nodes on which the script will be executed. See {@link NodeFiltersBuilder}
+     * @param nodeThreadcount thread count to use (for parallelizing when running on multiple nodes) - optional
+     * @param nodeKeepgoing if true, continue executing on other nodes even if some fail - optional
+     * @return a {@link RundeckExecution} instance for the (finished/aborted) execution - won't be null
+     * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the project or scriptFilename is blank (null, empty or whitespace)
+     * @throws IOException if we failed to read the file
+     * @see #runAdhocScript(String, String, Properties, Properties, Integer, Boolean, long, TimeUnit)
+     * @see #triggerAdhocScript(String, String, Properties, Properties, Integer, Boolean)
+     */
+    public RundeckExecution runAdhocScript(String project, String scriptFilename, Properties options,
+            Properties nodeFilters, Integer nodeThreadcount, Boolean nodeKeepgoing) throws RundeckApiException,
+            RundeckApiLoginException, IllegalArgumentException, IOException {
+        return runAdhocScript(project,
+                              scriptFilename,
+                              options,
+                              nodeFilters,
+                              nodeThreadcount,
+                              nodeKeepgoing,
+                              DEFAULT_POOLING_INTERVAL,
+                              DEFAULT_POOLING_UNIT);
+    }
+
+    /**
+     * Run an ad-hoc script, and wait until its execution is finished (or aborted) to return. We will poll the RunDeck
+     * server at regular interval (configured by the poolingInterval/poolingUnit couple) to know if the execution is
+     * finished (or aborted) or is still running. The script will be dispatched to nodes, accordingly to the nodeFilters
+     * parameter.
+     * 
+     * @param project name of the project - mandatory
+     * @param scriptFilename filename of the script to be executed - mandatory
+     * @param options of the script - optional. See {@link OptionsBuilder}.
+     * @param nodeFilters for selecting nodes on which the script will be executed. See {@link NodeFiltersBuilder}
+     * @param nodeThreadcount thread count to use (for parallelizing when running on multiple nodes) - optional
+     * @param nodeKeepgoing if true, continue executing on other nodes even if some fail - optional
+     * @param poolingInterval for checking the status of the execution. Must be > 0.
+     * @param poolingUnit unit (seconds, milli-seconds, ...) of the interval. Default to seconds.
+     * @return a {@link RundeckExecution} instance for the (finished/aborted) execution - won't be null
+     * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the project or scriptFilename is blank (null, empty or whitespace)
+     * @throws IOException if we failed to read the file
+     * @see #runAdhocScript(String, InputStream, Properties, Properties, Integer, Boolean, long, TimeUnit)
+     * @see #triggerAdhocScript(String, String, Properties, Properties, Integer, Boolean)
+     */
+    public RundeckExecution runAdhocScript(String project, String scriptFilename, Properties options,
+            Properties nodeFilters, Integer nodeThreadcount, Boolean nodeKeepgoing, long poolingInterval,
+            TimeUnit poolingUnit) throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException,
+            IOException {
+        AssertUtil.notBlank(scriptFilename, "scriptFilename is mandatory to run an ad-hoc script !");
+        FileInputStream stream = null;
+        try {
+            stream = FileUtils.openInputStream(new File(scriptFilename));
+            return runAdhocScript(project,
+                                  stream,
+                                  options,
+                                  nodeFilters,
+                                  nodeThreadcount,
+                                  nodeKeepgoing,
+                                  poolingInterval,
+                                  poolingUnit);
+        } finally {
+            IOUtils.closeQuietly(stream);
+        }
+    }
+
+    /**
+     * Run an ad-hoc script, and wait until its execution is finished (or aborted) to return. We will poll the RunDeck
+     * server at regular interval (every 5 seconds) to know if the execution is finished (or aborted) or is still
+     * running. The script will not be dispatched to nodes, but be executed on the RunDeck server.
+     * 
+     * @param project name of the project - mandatory
+     * @param script inputStream for reading the script to be executed - mandatory
+     * @return a {@link RundeckExecution} instance for the (finished/aborted) execution - won't be null
+     * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the project is blank (null, empty or whitespace) or the script is null
+     * @throws IOException if we failed to read the file
+     * @see #runAdhocScript(String, InputStream, Properties, Properties, Integer, Boolean, long, TimeUnit)
+     * @see #triggerAdhocScript(String, InputStream)
+     */
+    public RundeckExecution runAdhocScript(String project, InputStream script) throws RundeckApiException,
+            RundeckApiLoginException, IllegalArgumentException, IOException {
+        return runAdhocScript(project, script, null);
+    }
+
+    /**
+     * Run an ad-hoc script, and wait until its execution is finished (or aborted) to return. We will poll the RunDeck
+     * server at regular interval (configured by the poolingInterval/poolingUnit couple) to know if the execution is
+     * finished (or aborted) or is still running. The script will not be dispatched to nodes, but be executed on the
+     * RunDeck server.
+     * 
+     * @param project name of the project - mandatory
+     * @param script inputStream for reading the script to be executed - mandatory
+     * @param poolingInterval for checking the status of the execution. Must be > 0.
+     * @param poolingUnit unit (seconds, milli-seconds, ...) of the interval. Default to seconds.
+     * @return a {@link RundeckExecution} instance for the (finished/aborted) execution - won't be null
+     * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the project is blank (null, empty or whitespace) or the script is null
+     * @throws IOException if we failed to read the file
+     * @see #runAdhocScript(String, InputStream, Properties, Properties, Integer, Boolean, long, TimeUnit)
+     * @see #triggerAdhocScript(String, InputStream)
+     */
+    public RundeckExecution runAdhocScript(String project, InputStream script, long poolingInterval,
+            TimeUnit poolingUnit) throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException,
+            IOException {
+        return runAdhocScript(project, script, null, poolingInterval, poolingUnit);
+    }
+
+    /**
+     * Run an ad-hoc script, and wait until its execution is finished (or aborted) to return. We will poll the RunDeck
+     * server at regular interval (every 5 seconds) to know if the execution is finished (or aborted) or is still
+     * running. The script will not be dispatched to nodes, but be executed on the RunDeck server.
+     * 
+     * @param project name of the project - mandatory
+     * @param script inputStream for reading the script to be executed - mandatory
+     * @param options of the script - optional. See {@link OptionsBuilder}.
+     * @return a {@link RundeckExecution} instance for the (finished/aborted) execution - won't be null
+     * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the project is blank (null, empty or whitespace) or the script is null
+     * @throws IOException if we failed to read the file
+     * @see #runAdhocScript(String, InputStream, Properties, Properties, Integer, Boolean, long, TimeUnit)
+     * @see #triggerAdhocScript(String, InputStream, Properties)
+     */
+    public RundeckExecution runAdhocScript(String project, InputStream script, Properties options)
+            throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException, IOException {
+        return runAdhocScript(project, script, options, null);
+    }
+
+    /**
+     * Run an ad-hoc script, and wait until its execution is finished (or aborted) to return. We will poll the RunDeck
+     * server at regular interval (configured by the poolingInterval/poolingUnit couple) to know if the execution is
+     * finished (or aborted) or is still running. The script will not be dispatched to nodes, but be executed on the
+     * RunDeck server.
+     * 
+     * @param project name of the project - mandatory
+     * @param script inputStream for reading the script to be executed - mandatory
+     * @param options of the script - optional. See {@link OptionsBuilder}.
+     * @param poolingInterval for checking the status of the execution. Must be > 0.
+     * @param poolingUnit unit (seconds, milli-seconds, ...) of the interval. Default to seconds.
+     * @return a {@link RundeckExecution} instance for the (finished/aborted) execution - won't be null
+     * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the project is blank (null, empty or whitespace) or the script is null
+     * @throws IOException if we failed to read the file
+     * @see #runAdhocScript(String, InputStream, Properties, Properties, Integer, Boolean, long, TimeUnit)
+     * @see #triggerAdhocScript(String, InputStream, Properties)
+     */
+    public RundeckExecution runAdhocScript(String project, InputStream script, Properties options,
+            long poolingInterval, TimeUnit poolingUnit) throws RundeckApiException, RundeckApiLoginException,
+            IllegalArgumentException, IOException {
+        return runAdhocScript(project, script, options, null, poolingInterval, poolingUnit);
+    }
+
+    /**
+     * Run an ad-hoc script, and wait until its execution is finished (or aborted) to return. We will poll the RunDeck
+     * server at regular interval (every 5 seconds) to know if the execution is finished (or aborted) or is still
+     * running. The script will be dispatched to nodes, accordingly to the nodeFilters parameter.
+     * 
+     * @param project name of the project - mandatory
+     * @param script inputStream for reading the script to be executed - mandatory
+     * @param options of the script - optional. See {@link OptionsBuilder}.
+     * @param nodeFilters for selecting nodes on which the script will be executed. See {@link NodeFiltersBuilder}
+     * @return a {@link RundeckExecution} instance for the (finished/aborted) execution - won't be null
+     * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the project is blank (null, empty or whitespace) or the script is null
+     * @throws IOException if we failed to read the file
+     * @see #runAdhocScript(String, InputStream, Properties, Properties, Integer, Boolean, long, TimeUnit)
+     * @see #triggerAdhocScript(String, InputStream, Properties, Properties)
+     */
+    public RundeckExecution runAdhocScript(String project, InputStream script, Properties options,
+            Properties nodeFilters) throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException,
+            IOException {
+        return runAdhocScript(project, script, options, nodeFilters, null, null);
+    }
+
+    /**
+     * Run an ad-hoc script, and wait until its execution is finished (or aborted) to return. We will poll the RunDeck
+     * server at regular interval (configured by the poolingInterval/poolingUnit couple) to know if the execution is
+     * finished (or aborted) or is still running. The script will be dispatched to nodes, accordingly to the nodeFilters
+     * parameter.
+     * 
+     * @param project name of the project - mandatory
+     * @param script inputStream for reading the script to be executed - mandatory
+     * @param options of the script - optional. See {@link OptionsBuilder}.
+     * @param nodeFilters for selecting nodes on which the script will be executed. See {@link NodeFiltersBuilder}
+     * @param poolingInterval for checking the status of the execution. Must be > 0.
+     * @param poolingUnit unit (seconds, milli-seconds, ...) of the interval. Default to seconds.
+     * @return a {@link RundeckExecution} instance for the (finished/aborted) execution - won't be null
+     * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the project is blank (null, empty or whitespace) or the script is null
+     * @throws IOException if we failed to read the file
+     * @see #runAdhocScript(String, InputStream, Properties, Properties, Integer, Boolean, long, TimeUnit)
+     * @see #triggerAdhocScript(String, InputStream, Properties, Properties)
+     */
+    public RundeckExecution runAdhocScript(String project, InputStream script, Properties options,
+            Properties nodeFilters, long poolingInterval, TimeUnit poolingUnit) throws RundeckApiException,
+            RundeckApiLoginException, IllegalArgumentException, IOException {
+        return runAdhocScript(project, script, options, nodeFilters, null, null, poolingInterval, poolingUnit);
+    }
+
+    /**
+     * Run an ad-hoc script, and wait until its execution is finished (or aborted) to return. We will poll the RunDeck
+     * server at regular interval (every 5 seconds) to know if the execution is finished (or aborted) or is still
+     * running. The script will be dispatched to nodes, accordingly to the nodeFilters parameter.
+     * 
+     * @param project name of the project - mandatory
+     * @param script inputStream for reading the script to be executed - mandatory
+     * @param options of the script - optional. See {@link OptionsBuilder}.
+     * @param nodeFilters for selecting nodes on which the script will be executed. See {@link NodeFiltersBuilder}
+     * @param nodeThreadcount thread count to use (for parallelizing when running on multiple nodes) - optional
+     * @param nodeKeepgoing if true, continue executing on other nodes even if some fail - optional
+     * @return a {@link RundeckExecution} instance for the (finished/aborted) execution - won't be null
+     * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the project is blank (null, empty or whitespace) or the script is null
+     * @throws IOException if we failed to read the file
+     * @see #runAdhocScript(String, InputStream, Properties, Properties, Integer, Boolean, long, TimeUnit)
+     * @see #triggerAdhocScript(String, InputStream, Properties, Properties, Integer, Boolean)
+     */
+    public RundeckExecution runAdhocScript(String project, InputStream script, Properties options,
+            Properties nodeFilters, Integer nodeThreadcount, Boolean nodeKeepgoing) throws RundeckApiException,
+            RundeckApiLoginException, IllegalArgumentException, IOException {
+        return runAdhocScript(project,
+                              script,
+                              options,
+                              nodeFilters,
+                              nodeThreadcount,
+                              nodeKeepgoing,
+                              DEFAULT_POOLING_INTERVAL,
+                              DEFAULT_POOLING_UNIT);
+    }
+
+    /**
+     * Run an ad-hoc script, and wait until its execution is finished (or aborted) to return. We will poll the RunDeck
+     * server at regular interval (configured by the poolingInterval/poolingUnit couple) to know if the execution is
+     * finished (or aborted) or is still running. The script will be dispatched to nodes, accordingly to the nodeFilters
+     * parameter.
+     * 
+     * @param project name of the project - mandatory
+     * @param script inputStream for reading the script to be executed - mandatory
+     * @param options of the script - optional. See {@link OptionsBuilder}.
+     * @param nodeFilters for selecting nodes on which the script will be executed. See {@link NodeFiltersBuilder}
+     * @param nodeThreadcount thread count to use (for parallelizing when running on multiple nodes) - optional
+     * @param nodeKeepgoing if true, continue executing on other nodes even if some fail - optional
+     * @param poolingInterval for checking the status of the execution. Must be > 0.
+     * @param poolingUnit unit (seconds, milli-seconds, ...) of the interval. Default to seconds.
+     * @return a {@link RundeckExecution} instance for the (finished/aborted) execution - won't be null
+     * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the project is blank (null, empty or whitespace) or the script is null
+     * @throws IOException if we failed to read the file
+     * @see #runAdhocScript(String, String, Properties, Properties, Integer, Boolean, long, TimeUnit)
+     * @see #triggerAdhocScript(String, InputStream, Properties, Properties, Integer, Boolean)
+     */
+    public RundeckExecution runAdhocScript(String project, InputStream script, Properties options,
+            Properties nodeFilters, Integer nodeThreadcount, Boolean nodeKeepgoing, long poolingInterval,
+            TimeUnit poolingUnit) throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException {
+        if (poolingInterval <= 0) {
+            poolingInterval = DEFAULT_POOLING_INTERVAL;
+            poolingUnit = DEFAULT_POOLING_UNIT;
+        }
+        if (poolingUnit == null) {
+            poolingUnit = DEFAULT_POOLING_UNIT;
+        }
+
+        RundeckExecution execution = triggerAdhocScript(project,
+                                                        script,
+                                                        options,
+                                                        nodeFilters,
+                                                        nodeThreadcount,
+                                                        nodeKeepgoing);
         while (ExecutionStatus.RUNNING.equals(execution.getStatus())) {
             try {
                 Thread.sleep(poolingUnit.toMillis(poolingInterval));
