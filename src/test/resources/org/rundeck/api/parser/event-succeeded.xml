@@ -1,0 +1,1 @@
+<event starttime='1311946495646' endtime='1311946557618'><title>job-name</title><status>succeeded</status><summary>ps</summary><node-summary succeeded='2' failed='0' total='2'/><user>admin</user><project>test</project><date-started>2011-07-29T13:34:55Z</date-started><date-ended>2011-07-29T13:35:57Z</date-ended><job id='1'/><execution id='2'/></event>

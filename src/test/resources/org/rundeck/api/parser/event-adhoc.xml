@@ -1,0 +1,1 @@
+<event starttime='1311945953547' endtime='1311945963467'><title>adhoc</title><status>failed</status><summary>ls $HOME</summary><node-summary succeeded='1' failed='1' total='2'/><user>admin</user><project>test</project><date-started>2011-07-29T13:25:53Z</date-started><date-ended>2011-07-29T13:26:03Z</date-ended><execution id='1'/></event>

@@ -30,6 +30,7 @@ import org.apache.commons.lang.StringUtils;
 import org.rundeck.api.RundeckApiException.RundeckApiLoginException;
 import org.rundeck.api.domain.RundeckAbort;
 import org.rundeck.api.domain.RundeckExecution;
+import org.rundeck.api.domain.RundeckHistory;
 import org.rundeck.api.domain.RundeckJob;
 import org.rundeck.api.domain.RundeckJobsImportMethod;
 import org.rundeck.api.domain.RundeckJobsImportResult;
@@ -39,6 +40,7 @@ import org.rundeck.api.domain.RundeckSystemInfo;
 import org.rundeck.api.domain.RundeckExecution.ExecutionStatus;
 import org.rundeck.api.parser.AbortParser;
 import org.rundeck.api.parser.ExecutionParser;
+import org.rundeck.api.parser.HistoryParser;
 import org.rundeck.api.parser.JobParser;
 import org.rundeck.api.parser.JobsImportResultParser;
 import org.rundeck.api.parser.ListParser;
@@ -1893,6 +1895,26 @@ public class RundeckClient implements Serializable {
         AssertUtil.notNull(executionId, "executionId is mandatory to abort an execution !");
         return new ApiCall(this).get(new ApiPathBuilder("/execution/", executionId.toString(), "/abort"),
                                      new AbortParser("result/abort"));
+    }
+
+    /*
+     * History
+     */
+
+    /**
+     * Get the (events) history for the given project
+     * 
+     * @param project name of the project - mandatory
+     * @return a {@link RundeckHistory} instance - won't be null
+     * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the project is blank (null, empty or whitespace)
+     */
+    public RundeckHistory getHistory(String project) throws RundeckApiException, RundeckApiLoginException,
+            IllegalArgumentException {
+        AssertUtil.notBlank(project, "project is mandatory to get the history !");
+        return new ApiCall(this).get(new ApiPathBuilder("/history").param("project", project),
+                                     new HistoryParser("result/events"));
     }
 
     /*
