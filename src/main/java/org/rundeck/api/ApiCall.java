@@ -225,25 +225,6 @@ class ApiCall {
                                               + request.getURI(), e);
             }
 
-            // HTTP client refuses to handle redirects (code 3xx) for DELETE, so we have to do it manually...
-            // See http://rundeck.lighthouseapp.com/projects/59277/tickets/248
-            if (response.getStatusLine().getStatusCode() / 100 == 3
-                && HttpDelete.METHOD_NAME.equals(request.getMethod())) {
-                String newLocation = response.getFirstHeader("Location").getValue();
-                try {
-                    EntityUtils.consume(response.getEntity());
-                } catch (IOException e) {
-                    throw new RundeckApiException("Failed to consume entity (release connection)", e);
-                }
-                request = new HttpDelete(newLocation);
-                try {
-                    response = httpClient.execute(request);
-                } catch (IOException e) {
-                    throw new RundeckApiException("Failed to execute an HTTP " + request.getMethod() + " on url : "
-                                                  + request.getURI(), e);
-                }
-            }
-
             // in case of error, we get a redirect to /api/error
             // that we need to follow manually for POST and DELETE requests (as GET)
             if (response.getStatusLine().getStatusCode() / 100 == 3) {
