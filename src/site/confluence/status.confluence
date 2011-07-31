@@ -26,3 +26,12 @@ h2. RunDeck API version 1
 * Listing Resources - OK
 * Getting Resource Info - OK
 
+h2. RunDeck API version 2
+
+[Documentation of the RunDeck API version 2|http://rundeck.org/1.3/api/index.html]
+
+* Token-based authentication - *TODO*
+* Listing Jobs for a Project - *TODO*
+* Updating and Listing Resources for a Project - *TODO*
+* Refreshing Resources for a Project - *TODO*
+
