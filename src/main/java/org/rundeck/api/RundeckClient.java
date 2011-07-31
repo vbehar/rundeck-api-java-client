@@ -679,7 +679,7 @@ public class RundeckClient implements Serializable {
      * @throws RundeckApiLoginException if the login failed
      * @throws IllegalArgumentException if the jobId is blank (null, empty or whitespace)
      * @see #findJob(String, String, String)
-     * @see #exportJob(String)
+     * @see #exportJob(String, String)
      */
     public RundeckJob getJob(String jobId) throws RundeckApiException, RundeckApiLoginException,
             IllegalArgumentException {
@@ -1781,7 +1781,7 @@ public class RundeckClient implements Serializable {
      * @throws RundeckApiException in case of error when calling the API (non-existent job with this ID)
      * @throws RundeckApiLoginException if the login failed
      * @throws IllegalArgumentException if the jobId is blank (null, empty or whitespace)
-     * @see #getJobExecutions(String, ExecutionStatus, Long, Long)
+     * @see #getJobExecutions(String, RundeckExecution.ExecutionStatus, Long, Long)
      */
     public List<RundeckExecution> getJobExecutions(String jobId) throws RundeckApiException, RundeckApiLoginException,
             IllegalArgumentException {
@@ -1798,7 +1798,7 @@ public class RundeckClient implements Serializable {
      * @throws RundeckApiLoginException if the login failed
      * @throws IllegalArgumentException if the jobId is blank (null, empty or whitespace), or the executionStatus is
      *             invalid
-     * @see #getJobExecutions(String, ExecutionStatus, Long, Long)
+     * @see #getJobExecutions(String, String, Long, Long)
      */
     public List<RundeckExecution> getJobExecutions(String jobId, String status) throws RundeckApiException,
             RundeckApiLoginException, IllegalArgumentException {
@@ -1815,7 +1815,7 @@ public class RundeckClient implements Serializable {
      * @throws RundeckApiException in case of error when calling the API (non-existent job with this ID)
      * @throws RundeckApiLoginException if the login failed
      * @throws IllegalArgumentException if the jobId is blank (null, empty or whitespace)
-     * @see #getJobExecutions(String, ExecutionStatus, Long, Long)
+     * @see #getJobExecutions(String, RundeckExecution.ExecutionStatus, Long, Long)
      */
     public List<RundeckExecution> getJobExecutions(String jobId, ExecutionStatus status) throws RundeckApiException,
             RundeckApiLoginException, IllegalArgumentException {
@@ -1834,7 +1834,7 @@ public class RundeckClient implements Serializable {
      * @throws RundeckApiLoginException if the login failed
      * @throws IllegalArgumentException if the jobId is blank (null, empty or whitespace), or the executionStatus is
      *             invalid
-     * @see #getJobExecutions(String, ExecutionStatus, Long, Long)
+     * @see #getJobExecutions(String, RundeckExecution.ExecutionStatus, Long, Long)
      */
     public List<RundeckExecution> getJobExecutions(String jobId, String status, Long max, Long offset)
             throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException {
