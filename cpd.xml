@@ -1,3 +1,80 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <pmd-cpd>
+<duplication lines="27" tokens="139">
+<file line="152" path="/home/vinz/projects/perso/rundeck/rundeck-api-java-client/target/checkout/src/main/java/org/rundeck/api/domain/RundeckEvent.java"/>
+<file line="136" path="/home/vinz/projects/perso/rundeck/rundeck-api-java-client/target/checkout/src/main/java/org/rundeck/api/domain/RundeckExecution.java"/>
+<codefragment>
+<![CDATA[
+    }
+
+    public Date getStartedAt() {
+        return (startedAt != null) ? new Date(startedAt.getTime()) : null;
+    }
+
+    public void setStartedAt(Date startedAt) {
+        this.startedAt = ((startedAt != null) ? new Date(startedAt.getTime()) : null);
+    }
+
+    public Date getEndedAt() {
+        return (endedAt != null) ? new Date(endedAt.getTime()) : null;
+    }
+
+    public void setEndedAt(Date endedAt) {
+        this.endedAt = ((endedAt != null) ? new Date(endedAt.getTime()) : null);
+    }
+
+    public String getAbortedBy() {
+        return abortedBy;
+    }
+
+    public void setAbortedBy(String abortedBy) {
+        this.abortedBy = abortedBy;
+    }
+
+    public String getDescription() {
+]]>
+</codefragment>
+</duplication>
+<duplication lines="34" tokens="118">
+<file line="60" path="/home/vinz/projects/perso/rundeck/rundeck-api-java-client/target/checkout/src/main/java/org/rundeck/api/domain/RundeckEvent.java"/>
+<file line="58" path="/home/vinz/projects/perso/rundeck/rundeck-api-java-client/target/checkout/src/main/java/org/rundeck/api/domain/RundeckExecution.java"/>
+<codefragment>
+<![CDATA[
+    public Long getDurationInMillis() {
+        if (startedAt == null || endedAt == null) {
+            return null;
+        }
+        return endedAt.getTime() - startedAt.getTime();
+    }
+
+    /**
+     * @return the duration of the execution in seconds (or null if the execution is still running, or has been aborted)
+     */
+    public Long getDurationInSeconds() {
+        Long durationInMillis = getDurationInMillis();
+        return durationInMillis != null ? TimeUnit.MILLISECONDS.toSeconds(durationInMillis) : null;
+    }
+
+    /**
+     * @return the duration of the execution, as a human-readable string : "3 minutes 34 seconds" (or null if the
+     *         execution is still running, or has been aborted)
+     */
+    public String getDuration() {
+        Long durationInMillis = getDurationInMillis();
+        return durationInMillis != null ? DurationFormatUtils.formatDurationWords(durationInMillis, true, true) : null;
+    }
+
+    /**
+     * @return the duration of the execution, as a "short" human-readable string : "0:03:34.187" (or null if the
+     *         execution is still running, or has been aborted)
+     */
+    public String getShortDuration() {
+        Long durationInMillis = getDurationInMillis();
+        return durationInMillis != null ? DurationFormatUtils.formatDurationHMS(durationInMillis) : null;
+    }
+
+    public Long getId() {
+]]>
+</codefragment>
+</duplication>
 </pmd-cpd>
