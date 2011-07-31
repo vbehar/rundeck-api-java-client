@@ -21,7 +21,7 @@ h2. RunDeck API version 1
 * Running Adhoc Scripts - OK
 * Listing Projects - OK
 * Getting Project Info - OK
-* Listing History - *TODO*
+* Listing History - OK
 * Creating History Event Reports - *TODO*
 * Listing Resources - OK
 * Getting Resource Info - OK

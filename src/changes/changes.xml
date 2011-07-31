@@ -22,8 +22,9 @@
     <author>Vincent Behar</author>
   </properties>
   <body>
-    <release version="1.2" date="Not Yet Released" description="Ad-hoc scripts">
+    <release version="1.2" date="Not Yet Released" description="Ad-hoc scripts + history events">
       <action dev="vbehar" type="add">Run ad-hoc scripts</action>
+      <action dev="vbehar" type="add">List history events</action>
     </release>
     <release version="1.1" date="2011-07-28" description="Import / export jobs">
       <action dev="vbehar" type="add">Import jobs (XML or YAML)</action>

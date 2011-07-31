@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
@@ -30,6 +31,7 @@ import org.apache.commons.lang.StringUtils;
 import org.rundeck.api.RundeckApiException.RundeckApiLoginException;
 import org.rundeck.api.domain.RundeckAbort;
 import org.rundeck.api.domain.RundeckExecution;
+import org.rundeck.api.domain.RundeckExecution.ExecutionStatus;
 import org.rundeck.api.domain.RundeckHistory;
 import org.rundeck.api.domain.RundeckJob;
 import org.rundeck.api.domain.RundeckJobsImportMethod;
@@ -37,7 +39,6 @@ import org.rundeck.api.domain.RundeckJobsImportResult;
 import org.rundeck.api.domain.RundeckNode;
 import org.rundeck.api.domain.RundeckProject;
 import org.rundeck.api.domain.RundeckSystemInfo;
-import org.rundeck.api.domain.RundeckExecution.ExecutionStatus;
 import org.rundeck.api.parser.AbortParser;
 import org.rundeck.api.parser.ExecutionParser;
 import org.rundeck.api.parser.HistoryParser;
@@ -1909,11 +1910,174 @@ public class RundeckClient implements Serializable {
      * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
      * @throws RundeckApiLoginException if the login failed
      * @throws IllegalArgumentException if the project is blank (null, empty or whitespace)
+     * @see #getHistory(String, String, String, String, String, Date, Date, Long, Long)
      */
     public RundeckHistory getHistory(String project) throws RundeckApiException, RundeckApiLoginException,
             IllegalArgumentException {
+        return getHistory(project, null, null, null, null, null, null, null, null);
+    }
+
+    /**
+     * Get the (events) history for the given project
+     * 
+     * @param project name of the project - mandatory
+     * @param max number of results to return - optional (default to 20)
+     * @param offset the 0-indexed offset for the first result to return - optional (default to O)
+     * @return a {@link RundeckHistory} instance - won't be null
+     * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the project is blank (null, empty or whitespace)
+     * @see #getHistory(String, String, String, String, String, Date, Date, Long, Long)
+     */
+    public RundeckHistory getHistory(String project, Long max, Long offset) throws RundeckApiException,
+            RundeckApiLoginException, IllegalArgumentException {
+        return getHistory(project, null, null, null, null, null, null, max, offset);
+    }
+
+    /**
+     * Get the (events) history for the given project
+     * 
+     * @param project name of the project - mandatory
+     * @param jobId include only events matching the given job ID - optional
+     * @param reportId include only events matching the given report ID - optional
+     * @param user include only events created by the given user - optional
+     * @return a {@link RundeckHistory} instance - won't be null
+     * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the project is blank (null, empty or whitespace)
+     * @see #getHistory(String, String, String, String, String, Date, Date, Long, Long)
+     */
+    public RundeckHistory getHistory(String project, String jobId, String reportId, String user)
+            throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException {
+        return getHistory(project, jobId, reportId, user, null, null, null, null, null);
+    }
+
+    /**
+     * Get the (events) history for the given project
+     * 
+     * @param project name of the project - mandatory
+     * @param jobId include only events matching the given job ID - optional
+     * @param reportId include only events matching the given report ID - optional
+     * @param user include only events created by the given user - optional
+     * @param max number of results to return - optional (default to 20)
+     * @param offset the 0-indexed offset for the first result to return - optional (default to O)
+     * @return a {@link RundeckHistory} instance - won't be null
+     * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the project is blank (null, empty or whitespace)
+     * @see #getHistory(String, String, String, String, String, Date, Date, Long, Long)
+     */
+    public RundeckHistory getHistory(String project, String jobId, String reportId, String user, Long max, Long offset)
+            throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException {
+        return getHistory(project, jobId, reportId, user, null, null, null, max, offset);
+    }
+
+    /**
+     * Get the (events) history for the given project
+     * 
+     * @param project name of the project - mandatory
+     * @param recent include only events matching the given period of time. Format : "XY", where X is an integer, and Y
+     *            is one of : "h" (hour), "d" (day), "w" (week), "m" (month), "y" (year). Example : "2w" (= last 2
+     *            weeks), "5d" (= last 5 days), etc. Optional.
+     * @return a {@link RundeckHistory} instance - won't be null
+     * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the project is blank (null, empty or whitespace)
+     * @see #getHistory(String, String, String, String, String, Date, Date, Long, Long)
+     */
+    public RundeckHistory getHistory(String project, String recent) throws RundeckApiException,
+            RundeckApiLoginException, IllegalArgumentException {
+        return getHistory(project, null, null, null, recent, null, null, null, null);
+    }
+
+    /**
+     * Get the (events) history for the given project
+     * 
+     * @param project name of the project - mandatory
+     * @param recent include only events matching the given period of time. Format : "XY", where X is an integer, and Y
+     *            is one of : "h" (hour), "d" (day), "w" (week), "m" (month), "y" (year). Example : "2w" (= last 2
+     *            weeks), "5d" (= last 5 days), etc. Optional.
+     * @param max number of results to return - optional (default to 20)
+     * @param offset the 0-indexed offset for the first result to return - optional (default to O)
+     * @return a {@link RundeckHistory} instance - won't be null
+     * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the project is blank (null, empty or whitespace)
+     * @see #getHistory(String, String, String, String, String, Date, Date, Long, Long)
+     */
+    public RundeckHistory getHistory(String project, String recent, Long max, Long offset) throws RundeckApiException,
+            RundeckApiLoginException, IllegalArgumentException {
+        return getHistory(project, null, null, null, recent, null, null, max, offset);
+    }
+
+    /**
+     * Get the (events) history for the given project
+     * 
+     * @param project name of the project - mandatory
+     * @param begin date for the earlier events to retrieve - optional
+     * @param end date for the latest events to retrieve - optional
+     * @return a {@link RundeckHistory} instance - won't be null
+     * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the project is blank (null, empty or whitespace)
+     * @see #getHistory(String, String, String, String, String, Date, Date, Long, Long)
+     */
+    public RundeckHistory getHistory(String project, Date begin, Date end) throws RundeckApiException,
+            RundeckApiLoginException, IllegalArgumentException {
+        return getHistory(project, null, null, null, null, begin, end, null, null);
+    }
+
+    /**
+     * Get the (events) history for the given project
+     * 
+     * @param project name of the project - mandatory
+     * @param begin date for the earlier events to retrieve - optional
+     * @param end date for the latest events to retrieve - optional
+     * @param max number of results to return - optional (default to 20)
+     * @param offset the 0-indexed offset for the first result to return - optional (default to O)
+     * @return a {@link RundeckHistory} instance - won't be null
+     * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the project is blank (null, empty or whitespace)
+     * @see #getHistory(String, String, String, String, String, Date, Date, Long, Long)
+     */
+    public RundeckHistory getHistory(String project, Date begin, Date end, Long max, Long offset)
+            throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException {
+        return getHistory(project, null, null, null, null, begin, end, max, offset);
+    }
+
+    /**
+     * Get the (events) history for the given project
+     * 
+     * @param project name of the project - mandatory
+     * @param jobId include only events matching the given job ID - optional
+     * @param reportId include only events matching the given report ID - optional
+     * @param user include only events created by the given user - optional
+     * @param recent include only events matching the given period of time. Format : "XY", where X is an integer, and Y
+     *            is one of : "h" (hour), "d" (day), "w" (week), "m" (month), "y" (year). Example : "2w" (= last 2
+     *            weeks), "5d" (= last 5 days), etc. Optional.
+     * @param begin date for the earlier events to retrieve - optional
+     * @param end date for the latest events to retrieve - optional
+     * @param max number of results to return - optional (default to 20)
+     * @param offset the 0-indexed offset for the first result to return - optional (default to O)
+     * @return a {@link RundeckHistory} instance - won't be null
+     * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
+     * @throws RundeckApiLoginException if the login failed
+     * @throws IllegalArgumentException if the project is blank (null, empty or whitespace)
+     */
+    public RundeckHistory getHistory(String project, String jobId, String reportId, String user, String recent,
+            Date begin, Date end, Long max, Long offset) throws RundeckApiException, RundeckApiLoginException,
+            IllegalArgumentException {
         AssertUtil.notBlank(project, "project is mandatory to get the history !");
-        return new ApiCall(this).get(new ApiPathBuilder("/history").param("project", project),
+        return new ApiCall(this).get(new ApiPathBuilder("/history").param("project", project)
+                                                                   .param("jobIdFilter", jobId)
+                                                                   .param("reportIdFilter", reportId)
+                                                                   .param("userFilter", user)
+                                                                   .param("recentFilter", recent)
+                                                                   .param("begin", begin)
+                                                                   .param("end", end)
+                                                                   .param("max", max)
+                                                                   .param("offset", offset),
                                      new HistoryParser("result/events"));
     }
 

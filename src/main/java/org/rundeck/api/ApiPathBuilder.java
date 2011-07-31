@@ -16,6 +16,7 @@
 package org.rundeck.api;
 
 import java.io.InputStream;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -87,6 +88,21 @@ class ApiPathBuilder {
     public ApiPathBuilder param(String key, Enum<?> value) {
         if (value != null) {
             param(key, StringUtils.lowerCase(value.toString()));
+        }
+        return this;
+    }
+
+    /**
+     * Append the given parameter (key and value). This will only append the parameter if it is not null, and make sure
+     * to add the right separator ("?" or "&") before. The key and value will be separated by the "=" character.
+     * 
+     * @param key of the parameter. Must not be null or empty
+     * @param value of the parameter. May be null
+     * @return this, for method chaining
+     */
+    public ApiPathBuilder param(String key, Date value) {
+        if (value != null) {
+            param(key, value.getTime());
         }
         return this;
     }
