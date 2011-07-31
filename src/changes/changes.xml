@@ -22,7 +22,7 @@
     <author>Vincent Behar</author>
   </properties>
   <body>
-    <release version="1.2" date="Not Yet Released" description="Ad-hoc scripts + history events">
+    <release version="1.2" date="2011-07-31" description="Ad-hoc scripts + history events">
       <action dev="vbehar" type="add">Run ad-hoc scripts</action>
       <action dev="vbehar" type="add">List history events</action>
     </release>
