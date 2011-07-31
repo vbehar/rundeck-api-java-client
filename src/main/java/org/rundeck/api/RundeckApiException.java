@@ -33,9 +33,28 @@ public class RundeckApiException extends RuntimeException {
     }
 
     /**
-     * Specific login-related error
+     * Specific authentication-related error (either login or token).
+     * 
+     * @see RundeckApiLoginException
+     * @see RundeckApiTokenException
      */
-    public static class RundeckApiLoginException extends RundeckApiException {
+    public static class RundeckApiAuthException extends RundeckApiException {
+
+        private static final long serialVersionUID = 1L;
+
+        public RundeckApiAuthException(String message) {
+            super(message);
+        }
+
+        public RundeckApiAuthException(String message, Throwable cause) {
+            super(message, cause);
+        }
+    }
+
+    /**
+     * Specific authentication-related error (in case of login-based authentication)
+     */
+    public static class RundeckApiLoginException extends RundeckApiAuthException {
 
         private static final long serialVersionUID = 1L;
 
@@ -44,6 +63,22 @@ public class RundeckApiException extends RuntimeException {
         }
 
         public RundeckApiLoginException(String message, Throwable cause) {
+            super(message, cause);
+        }
+    }
+
+    /**
+     * Specific authentication-related error (in case of token-based authentication)
+     */
+    public static class RundeckApiTokenException extends RundeckApiAuthException {
+
+        private static final long serialVersionUID = 1L;
+
+        public RundeckApiTokenException(String message) {
+            super(message);
+        }
+
+        public RundeckApiTokenException(String message, Throwable cause) {
             super(message, cause);
         }
     }

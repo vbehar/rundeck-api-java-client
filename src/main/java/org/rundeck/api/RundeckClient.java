@@ -29,6 +29,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.rundeck.api.RundeckApiException.RundeckApiLoginException;
+import org.rundeck.api.RundeckApiException.RundeckApiTokenException;
 import org.rundeck.api.domain.RundeckAbort;
 import org.rundeck.api.domain.RundeckExecution;
 import org.rundeck.api.domain.RundeckExecution.ExecutionStatus;
@@ -54,10 +55,17 @@ import org.rundeck.api.util.ParametersUtil;
 
 /**
  * Main entry point to talk to a RunDeck instance.<br>
+ * You have 2 methods for authentication : login-based or token-based. If you want to use the first, you need to provide
+ * both a "login" and a "password". Otherwise, just provide a "token" (also called "auth-token"). See the RunDeck
+ * documentation for generating such a token.<br>
+ * <br>
  * Usage : <br>
  * <code>
  * <pre>
+ * // using login-based authentication :
  * RundeckClient rundeck = new RundeckClient("http://localhost:4440", "admin", "admin");
+ * // or for a token-based authentication :
+ * RundeckClient rundeck = new RundeckClient("http://localhost:4440", "PDDNKo5VE29kpk4prOUDr2rsKdRkEvsD");
  * 
  * List&lt;RundeckProject&gt; projects = rundeck.getProjects();
  * 
@@ -79,7 +87,7 @@ public class RundeckClient implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /** Version of the API supported */
-    public static final transient int API_VERSION = 1;
+    public static final transient int API_VERSION = 2;
 
     /** End-point of the API */
     public static final transient String API_ENDPOINT = "/api/" + API_VERSION;
@@ -93,28 +101,51 @@ public class RundeckClient implements Serializable {
     /** URL of the RunDeck instance ("http://localhost:4440", "http://rundeck.your-compagny.com/", etc) */
     private final String url;
 
-    /** Login to use for authentication on the RunDeck instance */
+    /** Auth-token for authentication (if not using login-based auth) */
+    private final String token;
+
+    /** Login to use for authentication on the RunDeck instance (if not using token-based auth) */
     private final String login;
 
-    /** Password to use for authentication on the RunDeck instance */
+    /** Password to use for authentication on the RunDeck instance (if not using token-based auth) */
     private final String password;
 
     /**
-     * Instantiate a new {@link RundeckClient} for the RunDeck instance at the given url
+     * Instantiate a new {@link RundeckClient} for the RunDeck instance at the given url, using login-based
+     * authentication.
      * 
      * @param url of the RunDeck instance ("http://localhost:4440", "http://rundeck.your-compagny.com/", etc)
-     * @param login
-     * @param password
+     * @param login to use for authentication on the RunDeck instance
+     * @param password to use for authentication on the RunDeck instance
      * @throws IllegalArgumentException if the url, login or password is blank (null, empty or whitespace)
      */
     public RundeckClient(String url, String login, String password) throws IllegalArgumentException {
         super();
-        this.url = url;
-        this.login = login;
-        this.password = password;
         AssertUtil.notBlank(url, "The RunDeck URL is mandatory !");
         AssertUtil.notBlank(login, "The RunDeck login is mandatory !");
         AssertUtil.notBlank(password, "The RunDeck password is mandatory !");
+        this.url = url;
+        this.login = login;
+        this.password = password;
+        this.token = null;
+    }
+
+    /**
+     * Instantiate a new {@link RundeckClient} for the RunDeck instance at the given url, using token-based
+     * authentication.
+     * 
+     * @param url of the RunDeck instance ("http://localhost:4440", "http://rundeck.your-compagny.com/", etc)
+     * @param token to use for authentication on the RunDeck instance
+     * @throws IllegalArgumentException if the url or token is blank (null, empty or whitespace)
+     */
+    public RundeckClient(String url, String token) throws IllegalArgumentException {
+        super();
+        AssertUtil.notBlank(url, "The RunDeck URL is mandatory !");
+        AssertUtil.notBlank(token, "The RunDeck auth-token is mandatory !");
+        this.url = url;
+        this.token = token;
+        this.login = null;
+        this.password = null;
     }
 
     /**
@@ -144,9 +175,11 @@ public class RundeckClient implements Serializable {
      * 
      * @return a {@link List} of {@link RundeckProject} : might be empty, but won't be null
      * @throws RundeckApiException in case of error when calling the API
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      */
-    public List<RundeckProject> getProjects() throws RundeckApiException, RundeckApiLoginException {
+    public List<RundeckProject> getProjects() throws RundeckApiException, RundeckApiLoginException,
+            RundeckApiTokenException {
         return new ApiCall(this).get(new ApiPathBuilder("/projects"),
                                      new ListParser<RundeckProject>(new ProjectParser(), "result/projects/project"));
     }
@@ -157,11 +190,12 @@ public class RundeckClient implements Serializable {
      * @param projectName name of the project - mandatory
      * @return a {@link RundeckProject} instance - won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the projectName is blank (null, empty or whitespace)
      */
     public RundeckProject getProject(String projectName) throws RundeckApiException, RundeckApiLoginException,
-            IllegalArgumentException {
+            RundeckApiTokenException, IllegalArgumentException {
         AssertUtil.notBlank(projectName, "projectName is mandatory to get the details of a project !");
         return new ApiCall(this).get(new ApiPathBuilder("/project/", projectName),
                                      new ProjectParser("result/projects/project"));
@@ -176,9 +210,10 @@ public class RundeckClient implements Serializable {
      * 
      * @return a {@link List} of {@link RundeckJob} : might be empty, but won't be null
      * @throws RundeckApiException in case of error when calling the API
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      */
-    public List<RundeckJob> getJobs() throws RundeckApiException, RundeckApiLoginException {
+    public List<RundeckJob> getJobs() throws RundeckApiException, RundeckApiLoginException, RundeckApiTokenException {
         List<RundeckJob> jobs = new ArrayList<RundeckJob>();
         for (RundeckProject project : getProjects()) {
             jobs.addAll(getJobs(project.getName()));
@@ -192,12 +227,13 @@ public class RundeckClient implements Serializable {
      * @param project name of the project - mandatory
      * @return a {@link List} of {@link RundeckJob} : might be empty, but won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the project is blank (null, empty or whitespace)
      * @see #getJobs(String, String, String, String...)
      */
     public List<RundeckJob> getJobs(String project) throws RundeckApiException, RundeckApiLoginException,
-            IllegalArgumentException {
+            RundeckApiTokenException, IllegalArgumentException {
         return getJobs(project, null, null, new String[0]);
     }
 
@@ -210,12 +246,13 @@ public class RundeckClient implements Serializable {
      * @param jobIds a list of Job IDs to include - optional
      * @return a {@link List} of {@link RundeckJob} : might be empty, but won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the project is blank (null, empty or whitespace)
      * @see #getJobs(String)
      */
     public List<RundeckJob> getJobs(String project, String jobFilter, String groupPath, String... jobIds)
-            throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException {
+            throws RundeckApiException, RundeckApiLoginException, RundeckApiTokenException, IllegalArgumentException {
         AssertUtil.notBlank(project, "project is mandatory to get all jobs !");
         return new ApiCall(this).get(new ApiPathBuilder("/jobs").param("project", project)
                                                                 .param("jobFilter", jobFilter)
@@ -231,7 +268,8 @@ public class RundeckClient implements Serializable {
      * @param format of the export. See {@link FileType} - mandatory
      * @param project name of the project - mandatory
      * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the format or project is blank (null, empty or whitespace), or the format is
      *             invalid
      * @throws IOException if we failed to write to the file
@@ -239,7 +277,7 @@ public class RundeckClient implements Serializable {
      * @see #exportJobs(String, String)
      */
     public void exportJobsToFile(String filename, String format, String project) throws RundeckApiException,
-            RundeckApiLoginException, IllegalArgumentException, IOException {
+            RundeckApiLoginException, RundeckApiTokenException, IllegalArgumentException, IOException {
         AssertUtil.notBlank(format, "format is mandatory to export jobs !");
         exportJobsToFile(filename, FileType.valueOf(StringUtils.upperCase(format)), project);
     }
@@ -251,14 +289,15 @@ public class RundeckClient implements Serializable {
      * @param format of the export. See {@link FileType} - mandatory
      * @param project name of the project - mandatory
      * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the project is blank (null, empty or whitespace) or the format is null
      * @throws IOException if we failed to write to the file
      * @see #exportJobsToFile(String, FileType, String, String, String, String...)
      * @see #exportJobs(FileType, String)
      */
     public void exportJobsToFile(String filename, FileType format, String project) throws RundeckApiException,
-            RundeckApiLoginException, IllegalArgumentException, IOException {
+            RundeckApiLoginException, RundeckApiTokenException, IllegalArgumentException, IOException {
         exportJobsToFile(filename, format, project, null, null, new String[0]);
     }
 
@@ -273,7 +312,8 @@ public class RundeckClient implements Serializable {
      * @param groupPath a group or partial group path to include all jobs within that group path - optional
      * @param jobIds a list of Job IDs to include - optional
      * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the filename, format or project is blank (null, empty or whitespace), or the
      *             format is invalid
      * @throws IOException if we failed to write to the file
@@ -281,8 +321,8 @@ public class RundeckClient implements Serializable {
      * @see #exportJobs(FileType, String, String, String, String...)
      */
     public void exportJobsToFile(String filename, String format, String project, String jobFilter, String groupPath,
-            String... jobIds) throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException,
-            IOException {
+            String... jobIds) throws RundeckApiException, RundeckApiLoginException, RundeckApiTokenException,
+            IllegalArgumentException, IOException {
         AssertUtil.notBlank(format, "format is mandatory to export jobs !");
         exportJobsToFile(filename,
                          FileType.valueOf(StringUtils.upperCase(format)),
@@ -303,15 +343,16 @@ public class RundeckClient implements Serializable {
      * @param groupPath a group or partial group path to include all jobs within that group path - optional
      * @param jobIds a list of Job IDs to include - optional
      * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the filename or project is blank (null, empty or whitespace), or the format
      *             is null
      * @throws IOException if we failed to write to the file
      * @see #exportJobs(FileType, String, String, String, String...)
      */
     public void exportJobsToFile(String filename, FileType format, String project, String jobFilter, String groupPath,
-            String... jobIds) throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException,
-            IOException {
+            String... jobIds) throws RundeckApiException, RundeckApiLoginException, RundeckApiTokenException,
+            IllegalArgumentException, IOException {
         AssertUtil.notBlank(filename, "filename is mandatory to export a job !");
         InputStream inputStream = exportJobs(format, project, jobFilter, groupPath, jobIds);
         FileUtils.writeByteArrayToFile(new File(filename), IOUtils.toByteArray(inputStream));
@@ -324,14 +365,15 @@ public class RundeckClient implements Serializable {
      * @param project name of the project - mandatory
      * @return an {@link InputStream} instance, not linked to any network resources - won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the format or project is blank (null, empty or whitespace), or the format is
      *             invalid
      * @see #exportJobs(FileType, String, String, String, String...)
      * @see #exportJobsToFile(String, String, String)
      */
     public InputStream exportJobs(String format, String project) throws RundeckApiException, RundeckApiLoginException,
-            IllegalArgumentException {
+            RundeckApiTokenException, IllegalArgumentException {
         AssertUtil.notBlank(format, "format is mandatory to export jobs !");
         return exportJobs(FileType.valueOf(StringUtils.upperCase(format)), project);
     }
@@ -343,13 +385,14 @@ public class RundeckClient implements Serializable {
      * @param project name of the project - mandatory
      * @return an {@link InputStream} instance, not linked to any network resources - won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the project is blank (null, empty or whitespace) or the format is null
      * @see #exportJobs(FileType, String, String, String, String...)
      * @see #exportJobsToFile(String, FileType, String)
      */
     public InputStream exportJobs(FileType format, String project) throws RundeckApiException,
-            RundeckApiLoginException, IllegalArgumentException {
+            RundeckApiLoginException, RundeckApiTokenException, IllegalArgumentException {
         return exportJobs(format, project, null, null, new String[0]);
     }
 
@@ -364,14 +407,15 @@ public class RundeckClient implements Serializable {
      * @param jobIds a list of Job IDs to include - optional
      * @return an {@link InputStream} instance, not linked to any network resources - won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the format or project is blank (null, empty or whitespace), or the format is
      *             invalid
      * @see #exportJobs(FileType, String, String, String, String...)
      * @see #exportJobsToFile(String, String, String, String, String, String...)
      */
     public InputStream exportJobs(String format, String project, String jobFilter, String groupPath, String... jobIds)
-            throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException {
+            throws RundeckApiException, RundeckApiLoginException, RundeckApiTokenException, IllegalArgumentException {
         AssertUtil.notBlank(format, "format is mandatory to export jobs !");
         return exportJobs(FileType.valueOf(StringUtils.upperCase(format)), project, jobFilter, groupPath, jobIds);
     }
@@ -387,12 +431,13 @@ public class RundeckClient implements Serializable {
      * @param jobIds a list of Job IDs to include - optional
      * @return an {@link InputStream} instance, not linked to any network resources - won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the project is blank (null, empty or whitespace) or the format is null
      * @see #exportJobsToFile(String, FileType, String, String, String, String...)
      */
     public InputStream exportJobs(FileType format, String project, String jobFilter, String groupPath, String... jobIds)
-            throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException {
+            throws RundeckApiException, RundeckApiLoginException, RundeckApiTokenException, IllegalArgumentException {
         AssertUtil.notNull(format, "format is mandatory to export jobs !");
         AssertUtil.notBlank(project, "project is mandatory to export jobs !");
         return new ApiCall(this).get(new ApiPathBuilder("/jobs/export").param("format", format)
@@ -409,7 +454,8 @@ public class RundeckClient implements Serializable {
      * @param format of the export. See {@link FileType} - mandatory
      * @param jobId identifier of the job - mandatory
      * @throws RundeckApiException in case of error when calling the API (non-existent job with this ID)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the filename, format or jobId is blank (null, empty or whitespace), or the
      *             format is invalid
      * @throws IOException if we failed to write to the file
@@ -418,7 +464,7 @@ public class RundeckClient implements Serializable {
      * @see #getJob(String)
      */
     public void exportJobToFile(String filename, String format, String jobId) throws RundeckApiException,
-            RundeckApiLoginException, IllegalArgumentException, IOException {
+            RundeckApiLoginException, RundeckApiTokenException, IllegalArgumentException, IOException {
         AssertUtil.notBlank(format, "format is mandatory to export a job !");
         exportJobToFile(filename, FileType.valueOf(StringUtils.upperCase(format)), jobId);
     }
@@ -430,7 +476,8 @@ public class RundeckClient implements Serializable {
      * @param format of the export. See {@link FileType} - mandatory
      * @param jobId identifier of the job - mandatory
      * @throws RundeckApiException in case of error when calling the API (non-existent job with this ID)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the filename or jobId is blank (null, empty or whitespace), or the format is
      *             null
      * @throws IOException if we failed to write to the file
@@ -438,7 +485,7 @@ public class RundeckClient implements Serializable {
      * @see #getJob(String)
      */
     public void exportJobToFile(String filename, FileType format, String jobId) throws RundeckApiException,
-            RundeckApiLoginException, IllegalArgumentException, IOException {
+            RundeckApiLoginException, RundeckApiTokenException, IllegalArgumentException, IOException {
         AssertUtil.notBlank(filename, "filename is mandatory to export a job !");
         InputStream inputStream = exportJob(format, jobId);
         FileUtils.writeByteArrayToFile(new File(filename), IOUtils.toByteArray(inputStream));
@@ -451,14 +498,15 @@ public class RundeckClient implements Serializable {
      * @param jobId identifier of the job - mandatory
      * @return an {@link InputStream} instance, not linked to any network resources - won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent job with this ID)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the format or jobId is blank (null, empty or whitespace), or the format is
      *             invalid
      * @see #exportJobToFile(String, String, String)
      * @see #getJob(String)
      */
     public InputStream exportJob(String format, String jobId) throws RundeckApiException, RundeckApiLoginException,
-            IllegalArgumentException {
+            RundeckApiTokenException, IllegalArgumentException {
         AssertUtil.notBlank(format, "format is mandatory to export a job !");
         return exportJob(FileType.valueOf(StringUtils.upperCase(format)), jobId);
     }
@@ -470,13 +518,14 @@ public class RundeckClient implements Serializable {
      * @param jobId identifier of the job - mandatory
      * @return an {@link InputStream} instance, not linked to any network resources - won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent job with this ID)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the jobId is blank (null, empty or whitespace), or the format is null
      * @see #exportJobToFile(String, FileType, String)
      * @see #getJob(String)
      */
     public InputStream exportJob(FileType format, String jobId) throws RundeckApiException, RundeckApiLoginException,
-            IllegalArgumentException {
+            RundeckApiTokenException, IllegalArgumentException {
         AssertUtil.notNull(format, "format is mandatory to export a job !");
         AssertUtil.notBlank(jobId, "jobId is mandatory to export a job !");
         return new ApiCall(this).get(new ApiPathBuilder("/job/", jobId).param("format", format));
@@ -489,7 +538,8 @@ public class RundeckClient implements Serializable {
      * @param fileType type of the file. See {@link FileType} - mandatory
      * @return a {@link RundeckJobsImportResult} instance - won't be null
      * @throws RundeckApiException in case of error when calling the API
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the filename or fileType is blank (null, empty or whitespace), or the
      *             fileType is invalid
      * @throws IOException if we failed to read the file
@@ -497,7 +547,7 @@ public class RundeckClient implements Serializable {
      * @see #importJobs(String, FileType, RundeckJobsImportMethod)
      */
     public RundeckJobsImportResult importJobs(String filename, String fileType) throws RundeckApiException,
-            RundeckApiLoginException, IllegalArgumentException, IOException {
+            RundeckApiLoginException, RundeckApiTokenException, IllegalArgumentException, IOException {
         AssertUtil.notBlank(fileType, "fileType is mandatory to import jobs !");
         return importJobs(filename, FileType.valueOf(StringUtils.upperCase(fileType)));
     }
@@ -509,14 +559,15 @@ public class RundeckClient implements Serializable {
      * @param fileType type of the file. See {@link FileType} - mandatory
      * @return a {@link RundeckJobsImportResult} instance - won't be null
      * @throws RundeckApiException in case of error when calling the API
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the filename is blank (null, empty or whitespace), or the fileType is null
      * @throws IOException if we failed to read the file
      * @see #importJobs(InputStream, FileType)
      * @see #importJobs(String, FileType, RundeckJobsImportMethod)
      */
     public RundeckJobsImportResult importJobs(String filename, FileType fileType) throws RundeckApiException,
-            RundeckApiLoginException, IllegalArgumentException, IOException {
+            RundeckApiLoginException, RundeckApiTokenException, IllegalArgumentException, IOException {
         return importJobs(filename, fileType, (RundeckJobsImportMethod) null);
     }
 
@@ -528,7 +579,8 @@ public class RundeckClient implements Serializable {
      * @param importBehavior see {@link RundeckJobsImportMethod}
      * @return a {@link RundeckJobsImportResult} instance - won't be null
      * @throws RundeckApiException in case of error when calling the API
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the filename or fileType is blank (null, empty or whitespace), or the
      *             fileType or behavior is not valid
      * @throws IOException if we failed to read the file
@@ -536,7 +588,8 @@ public class RundeckClient implements Serializable {
      * @see #importJobs(String, FileType, RundeckJobsImportMethod)
      */
     public RundeckJobsImportResult importJobs(String filename, String fileType, String importBehavior)
-            throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException, IOException {
+            throws RundeckApiException, RundeckApiLoginException, RundeckApiTokenException, IllegalArgumentException,
+            IOException {
         AssertUtil.notBlank(fileType, "fileType is mandatory to import jobs !");
         return importJobs(filename,
                           FileType.valueOf(StringUtils.upperCase(fileType)),
@@ -551,13 +604,15 @@ public class RundeckClient implements Serializable {
      * @param importBehavior see {@link RundeckJobsImportMethod}
      * @return a {@link RundeckJobsImportResult} instance - won't be null
      * @throws RundeckApiException in case of error when calling the API
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the filename is blank (null, empty or whitespace), or the fileType is null
      * @throws IOException if we failed to read the file
      * @see #importJobs(InputStream, FileType, RundeckJobsImportMethod)
      */
     public RundeckJobsImportResult importJobs(String filename, FileType fileType, RundeckJobsImportMethod importBehavior)
-            throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException, IOException {
+            throws RundeckApiException, RundeckApiLoginException, RundeckApiTokenException, IllegalArgumentException,
+            IOException {
         AssertUtil.notBlank(filename, "filename (of jobs file) is mandatory to import jobs !");
         FileInputStream stream = null;
         try {
@@ -575,14 +630,15 @@ public class RundeckClient implements Serializable {
      * @param fileType type of the file. See {@link FileType} - mandatory
      * @return a {@link RundeckJobsImportResult} instance - won't be null
      * @throws RundeckApiException in case of error when calling the API
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the stream is null, or the fileType is blank (null, empty or whitespace) or
      *             invalid
      * @see #importJobs(String, String)
      * @see #importJobs(InputStream, FileType, RundeckJobsImportMethod)
      */
     public RundeckJobsImportResult importJobs(InputStream stream, String fileType) throws RundeckApiException,
-            RundeckApiLoginException, IllegalArgumentException {
+            RundeckApiLoginException, RundeckApiTokenException, IllegalArgumentException {
         AssertUtil.notBlank(fileType, "fileType is mandatory to import jobs !");
         return importJobs(stream, FileType.valueOf(StringUtils.upperCase(fileType)));
     }
@@ -594,13 +650,14 @@ public class RundeckClient implements Serializable {
      * @param fileType type of the file. See {@link FileType} - mandatory
      * @return a {@link RundeckJobsImportResult} instance - won't be null
      * @throws RundeckApiException in case of error when calling the API
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the stream or fileType is null
      * @see #importJobs(String, FileType)
      * @see #importJobs(InputStream, FileType, RundeckJobsImportMethod)
      */
     public RundeckJobsImportResult importJobs(InputStream stream, FileType fileType) throws RundeckApiException,
-            RundeckApiLoginException, IllegalArgumentException {
+            RundeckApiLoginException, RundeckApiTokenException, IllegalArgumentException {
         return importJobs(stream, fileType, (RundeckJobsImportMethod) null);
     }
 
@@ -612,14 +669,15 @@ public class RundeckClient implements Serializable {
      * @param importBehavior see {@link RundeckJobsImportMethod}
      * @return a {@link RundeckJobsImportResult} instance - won't be null
      * @throws RundeckApiException in case of error when calling the API
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the stream is null, or the fileType is blank (null, empty or whitespace), or
      *             the fileType or behavior is not valid
      * @see #importJobs(String, String, String)
      * @see #importJobs(InputStream, FileType, RundeckJobsImportMethod)
      */
     public RundeckJobsImportResult importJobs(InputStream stream, String fileType, String importBehavior)
-            throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException {
+            throws RundeckApiException, RundeckApiLoginException, RundeckApiTokenException, IllegalArgumentException {
         AssertUtil.notBlank(fileType, "fileType is mandatory to import jobs !");
         return importJobs(stream,
                           FileType.valueOf(StringUtils.upperCase(fileType)),
@@ -634,13 +692,14 @@ public class RundeckClient implements Serializable {
      * @param importBehavior see {@link RundeckJobsImportMethod}
      * @return a {@link RundeckJobsImportResult} instance - won't be null
      * @throws RundeckApiException in case of error when calling the API
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the stream or fileType is null
      * @see #importJobs(String, FileType, RundeckJobsImportMethod)
      */
     public RundeckJobsImportResult importJobs(InputStream stream, FileType fileType,
             RundeckJobsImportMethod importBehavior) throws RundeckApiException, RundeckApiLoginException,
-            IllegalArgumentException {
+            RundeckApiTokenException, IllegalArgumentException {
         AssertUtil.notNull(stream, "inputStream of jobs is mandatory to import jobs !");
         AssertUtil.notNull(fileType, "fileType is mandatory to import jobs !");
         return new ApiCall(this).post(new ApiPathBuilder("/jobs/import").param("format", fileType)
@@ -658,12 +717,13 @@ public class RundeckClient implements Serializable {
      * @param name of the job to find - mandatory
      * @return a {@link RundeckJob} instance - null if not found
      * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the project or the name is blank (null, empty or whitespace)
      * @see #getJob(String)
      */
     public RundeckJob findJob(String project, String groupPath, String name) throws RundeckApiException,
-            RundeckApiLoginException, IllegalArgumentException {
+            RundeckApiLoginException, RundeckApiTokenException, IllegalArgumentException {
         AssertUtil.notBlank(project, "project is mandatory to find a job !");
         AssertUtil.notBlank(name, "job name is mandatory to find a job !");
         List<RundeckJob> jobs = getJobs(project, name, groupPath, new String[0]);
@@ -676,13 +736,14 @@ public class RundeckClient implements Serializable {
      * @param jobId identifier of the job - mandatory
      * @return a {@link RundeckJob} instance - won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent job with this ID)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the jobId is blank (null, empty or whitespace)
      * @see #findJob(String, String, String)
      * @see #exportJob(String, String)
      */
     public RundeckJob getJob(String jobId) throws RundeckApiException, RundeckApiLoginException,
-            IllegalArgumentException {
+            RundeckApiTokenException, IllegalArgumentException {
         AssertUtil.notBlank(jobId, "jobId is mandatory to get the details of a job !");
         return new ApiCall(this).get(new ApiPathBuilder("/job/", jobId), new JobParser("joblist/job"));
     }
@@ -693,11 +754,12 @@ public class RundeckClient implements Serializable {
      * @param jobId identifier of the job - mandatory
      * @return the success message (note that in case of error, you'll get an exception)
      * @throws RundeckApiException in case of error when calling the API (non-existent job with this ID)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the jobId is blank (null, empty or whitespace)
      */
     public String deleteJob(String jobId) throws RundeckApiException, RundeckApiLoginException,
-            IllegalArgumentException {
+            RundeckApiTokenException, IllegalArgumentException {
         AssertUtil.notBlank(jobId, "jobId is mandatory to delete a job !");
         return new ApiCall(this).delete(new ApiPathBuilder("/job/", jobId), new StringParser("result/success/message"));
     }
@@ -709,13 +771,14 @@ public class RundeckClient implements Serializable {
      * @param jobId identifier of the job - mandatory
      * @return a {@link RundeckExecution} instance for the newly created (and running) execution - won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent job with this ID)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the jobId is blank (null, empty or whitespace)
      * @see #triggerJob(String, Properties, Properties)
      * @see #runJob(String)
      */
     public RundeckExecution triggerJob(String jobId) throws RundeckApiException, RundeckApiLoginException,
-            IllegalArgumentException {
+            RundeckApiTokenException, IllegalArgumentException {
         return triggerJob(jobId, null);
     }
 
@@ -727,13 +790,14 @@ public class RundeckClient implements Serializable {
      * @param options of the job - optional. See {@link OptionsBuilder}.
      * @return a {@link RundeckExecution} instance for the newly created (and running) execution - won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent job with this ID)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the jobId is blank (null, empty or whitespace)
      * @see #triggerJob(String, Properties, Properties)
      * @see #runJob(String, Properties)
      */
     public RundeckExecution triggerJob(String jobId, Properties options) throws RundeckApiException,
-            RundeckApiLoginException, IllegalArgumentException {
+            RundeckApiLoginException, RundeckApiTokenException, IllegalArgumentException {
         return triggerJob(jobId, options, null);
     }
 
@@ -747,13 +811,14 @@ public class RundeckClient implements Serializable {
      *            {@link NodeFiltersBuilder}
      * @return a {@link RundeckExecution} instance for the newly created (and running) execution - won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent job with this ID)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the jobId is blank (null, empty or whitespace)
      * @see #triggerJob(String)
      * @see #runJob(String, Properties, Properties)
      */
     public RundeckExecution triggerJob(String jobId, Properties options, Properties nodeFilters)
-            throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException {
+            throws RundeckApiException, RundeckApiLoginException, RundeckApiTokenException, IllegalArgumentException {
         AssertUtil.notBlank(jobId, "jobId is mandatory to trigger a job !");
         return new ApiCall(this).get(new ApiPathBuilder("/job/", jobId, "/run").param("argString",
                                                                                       ParametersUtil.generateArgString(options))
@@ -769,13 +834,14 @@ public class RundeckClient implements Serializable {
      * @param jobId identifier of the job - mandatory
      * @return a {@link RundeckExecution} instance for the (finished/aborted) execution - won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent job with this ID)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the jobId is blank (null, empty or whitespace)
      * @see #triggerJob(String)
      * @see #runJob(String, Properties, Properties, long, TimeUnit)
      */
     public RundeckExecution runJob(String jobId) throws RundeckApiException, RundeckApiLoginException,
-            IllegalArgumentException {
+            RundeckApiTokenException, IllegalArgumentException {
         return runJob(jobId, null);
     }
 
@@ -788,13 +854,14 @@ public class RundeckClient implements Serializable {
      * @param options of the job - optional. See {@link OptionsBuilder}.
      * @return a {@link RundeckExecution} instance for the (finished/aborted) execution - won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent job with this ID)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the jobId is blank (null, empty or whitespace)
      * @see #triggerJob(String, Properties)
      * @see #runJob(String, Properties, Properties, long, TimeUnit)
      */
     public RundeckExecution runJob(String jobId, Properties options) throws RundeckApiException,
-            RundeckApiLoginException, IllegalArgumentException {
+            RundeckApiLoginException, RundeckApiTokenException, IllegalArgumentException {
         return runJob(jobId, options, null);
     }
 
@@ -809,13 +876,14 @@ public class RundeckClient implements Serializable {
      *            {@link NodeFiltersBuilder}
      * @return a {@link RundeckExecution} instance for the (finished/aborted) execution - won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent job with this ID)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the jobId is blank (null, empty or whitespace)
      * @see #triggerJob(String, Properties, Properties)
      * @see #runJob(String, Properties, Properties, long, TimeUnit)
      */
     public RundeckExecution runJob(String jobId, Properties options, Properties nodeFilters)
-            throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException {
+            throws RundeckApiException, RundeckApiLoginException, RundeckApiTokenException, IllegalArgumentException {
         return runJob(jobId, options, nodeFilters, DEFAULT_POOLING_INTERVAL, DEFAULT_POOLING_UNIT);
     }
 
@@ -830,13 +898,14 @@ public class RundeckClient implements Serializable {
      * @param poolingUnit unit (seconds, milli-seconds, ...) of the interval. Default to seconds.
      * @return a {@link RundeckExecution} instance for the (finished/aborted) execution - won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent job with this ID)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the jobId is blank (null, empty or whitespace)
      * @see #triggerJob(String, Properties)
      * @see #runJob(String, Properties, Properties, long, TimeUnit)
      */
     public RundeckExecution runJob(String jobId, Properties options, long poolingInterval, TimeUnit poolingUnit)
-            throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException {
+            throws RundeckApiException, RundeckApiLoginException, RundeckApiTokenException, IllegalArgumentException {
         return runJob(jobId, options, null, poolingInterval, poolingUnit);
     }
 
@@ -853,13 +922,15 @@ public class RundeckClient implements Serializable {
      * @param poolingUnit unit (seconds, milli-seconds, ...) of the interval. Default to seconds.
      * @return a {@link RundeckExecution} instance for the (finished/aborted) execution - won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent job with this ID)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the jobId is blank (null, empty or whitespace)
      * @see #triggerJob(String, Properties)
      * @see #runJob(String, Properties, Properties, long, TimeUnit)
      */
     public RundeckExecution runJob(String jobId, Properties options, Properties nodeFilters, long poolingInterval,
-            TimeUnit poolingUnit) throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException {
+            TimeUnit poolingUnit) throws RundeckApiException, RundeckApiLoginException, RundeckApiTokenException,
+            IllegalArgumentException {
         if (poolingInterval <= 0) {
             poolingInterval = DEFAULT_POOLING_INTERVAL;
             poolingUnit = DEFAULT_POOLING_UNIT;
@@ -892,13 +963,14 @@ public class RundeckClient implements Serializable {
      * @param command to be executed - mandatory
      * @return a {@link RundeckExecution} instance for the newly created (and running) execution - won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the project or command is blank (null, empty or whitespace)
      * @see #triggerAdhocCommand(String, String, Properties, Integer, Boolean)
      * @see #runAdhocCommand(String, String)
      */
     public RundeckExecution triggerAdhocCommand(String project, String command) throws RundeckApiException,
-            RundeckApiLoginException, IllegalArgumentException {
+            RundeckApiLoginException, RundeckApiTokenException, IllegalArgumentException {
         return triggerAdhocCommand(project, command, null);
     }
 
@@ -911,13 +983,14 @@ public class RundeckClient implements Serializable {
      * @param nodeFilters for selecting nodes on which the command will be executed. See {@link NodeFiltersBuilder}
      * @return a {@link RundeckExecution} instance for the newly created (and running) execution - won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the project or command is blank (null, empty or whitespace)
      * @see #triggerAdhocCommand(String, String, Properties, Integer, Boolean)
      * @see #runAdhocCommand(String, String, Properties)
      */
     public RundeckExecution triggerAdhocCommand(String project, String command, Properties nodeFilters)
-            throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException {
+            throws RundeckApiException, RundeckApiLoginException, RundeckApiTokenException, IllegalArgumentException {
         return triggerAdhocCommand(project, command, nodeFilters, null, null);
     }
 
@@ -932,14 +1005,15 @@ public class RundeckClient implements Serializable {
      * @param nodeKeepgoing if true, continue executing on other nodes even if some fail - optional
      * @return a {@link RundeckExecution} instance for the newly created (and running) execution - won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the project or command is blank (null, empty or whitespace)
      * @see #triggerAdhocCommand(String, String)
      * @see #runAdhocCommand(String, String, Properties)
      */
     public RundeckExecution triggerAdhocCommand(String project, String command, Properties nodeFilters,
             Integer nodeThreadcount, Boolean nodeKeepgoing) throws RundeckApiException, RundeckApiLoginException,
-            IllegalArgumentException {
+            RundeckApiTokenException, IllegalArgumentException {
         AssertUtil.notBlank(project, "project is mandatory to trigger an ad-hoc command !");
         AssertUtil.notBlank(command, "command is mandatory to trigger an ad-hoc command !");
         RundeckExecution execution = new ApiCall(this).get(new ApiPathBuilder("/run/command").param("project", project)
@@ -963,13 +1037,14 @@ public class RundeckClient implements Serializable {
      * @param command to be executed - mandatory
      * @return a {@link RundeckExecution} instance for the (finished/aborted) execution - won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the project or command is blank (null, empty or whitespace)
      * @see #runAdhocCommand(String, String, Properties, Integer, Boolean, long, TimeUnit)
      * @see #triggerAdhocCommand(String, String)
      */
     public RundeckExecution runAdhocCommand(String project, String command) throws RundeckApiException,
-            RundeckApiLoginException, IllegalArgumentException {
+            RundeckApiLoginException, RundeckApiTokenException, IllegalArgumentException {
         return runAdhocCommand(project, command, null);
     }
 
@@ -985,13 +1060,14 @@ public class RundeckClient implements Serializable {
      * @param poolingUnit unit (seconds, milli-seconds, ...) of the interval. Default to seconds.
      * @return a {@link RundeckExecution} instance for the (finished/aborted) execution - won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the project or command is blank (null, empty or whitespace)
      * @see #runAdhocCommand(String, String, Properties, Integer, Boolean, long, TimeUnit)
      * @see #triggerAdhocCommand(String, String)
      */
     public RundeckExecution runAdhocCommand(String project, String command, long poolingInterval, TimeUnit poolingUnit)
-            throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException {
+            throws RundeckApiException, RundeckApiLoginException, RundeckApiTokenException, IllegalArgumentException {
         return runAdhocCommand(project, command, null, poolingInterval, poolingUnit);
     }
 
@@ -1005,13 +1081,14 @@ public class RundeckClient implements Serializable {
      * @param nodeFilters for selecting nodes on which the command will be executed. See {@link NodeFiltersBuilder}
      * @return a {@link RundeckExecution} instance for the (finished/aborted) execution - won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the project or command is blank (null, empty or whitespace)
      * @see #runAdhocCommand(String, String, Properties, Integer, Boolean, long, TimeUnit)
      * @see #triggerAdhocCommand(String, String, Properties)
      */
     public RundeckExecution runAdhocCommand(String project, String command, Properties nodeFilters)
-            throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException {
+            throws RundeckApiException, RundeckApiLoginException, RundeckApiTokenException, IllegalArgumentException {
         return runAdhocCommand(project, command, nodeFilters, null, null);
     }
 
@@ -1028,14 +1105,15 @@ public class RundeckClient implements Serializable {
      * @param poolingUnit unit (seconds, milli-seconds, ...) of the interval. Default to seconds.
      * @return a {@link RundeckExecution} instance for the (finished/aborted) execution - won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the project or command is blank (null, empty or whitespace)
      * @see #runAdhocCommand(String, String, Properties, Integer, Boolean, long, TimeUnit)
      * @see #triggerAdhocCommand(String, String, Properties)
      */
     public RundeckExecution runAdhocCommand(String project, String command, Properties nodeFilters,
             long poolingInterval, TimeUnit poolingUnit) throws RundeckApiException, RundeckApiLoginException,
-            IllegalArgumentException {
+            RundeckApiTokenException, IllegalArgumentException {
         return runAdhocCommand(project, command, nodeFilters, null, null, poolingInterval, poolingUnit);
     }
 
@@ -1051,14 +1129,15 @@ public class RundeckClient implements Serializable {
      * @param nodeKeepgoing if true, continue executing on other nodes even if some fail - optional
      * @return a {@link RundeckExecution} instance for the (finished/aborted) execution - won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the project or command is blank (null, empty or whitespace)
      * @see #runAdhocCommand(String, String, Properties, Integer, Boolean, long, TimeUnit)
      * @see #triggerAdhocCommand(String, String, Properties, Integer, Boolean)
      */
     public RundeckExecution runAdhocCommand(String project, String command, Properties nodeFilters,
             Integer nodeThreadcount, Boolean nodeKeepgoing) throws RundeckApiException, RundeckApiLoginException,
-            IllegalArgumentException {
+            RundeckApiTokenException, IllegalArgumentException {
         return runAdhocCommand(project,
                                command,
                                nodeFilters,
@@ -1083,13 +1162,14 @@ public class RundeckClient implements Serializable {
      * @param poolingUnit unit (seconds, milli-seconds, ...) of the interval. Default to seconds.
      * @return a {@link RundeckExecution} instance for the (finished/aborted) execution - won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the project or command is blank (null, empty or whitespace)
      * @see #triggerAdhocCommand(String, String, Properties, Integer, Boolean)
      */
     public RundeckExecution runAdhocCommand(String project, String command, Properties nodeFilters,
             Integer nodeThreadcount, Boolean nodeKeepgoing, long poolingInterval, TimeUnit poolingUnit)
-            throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException {
+            throws RundeckApiException, RundeckApiLoginException, RundeckApiTokenException, IllegalArgumentException {
         if (poolingInterval <= 0) {
             poolingInterval = DEFAULT_POOLING_INTERVAL;
             poolingUnit = DEFAULT_POOLING_UNIT;
@@ -1122,14 +1202,15 @@ public class RundeckClient implements Serializable {
      * @param scriptFilename filename of the script to be executed - mandatory
      * @return a {@link RundeckExecution} instance for the newly created (and running) execution - won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the project or scriptFilename is blank (null, empty or whitespace)
      * @throws IOException if we failed to read the file
      * @see #triggerAdhocScript(String, String, Properties, Properties, Integer, Boolean)
      * @see #runAdhocScript(String, String)
      */
     public RundeckExecution triggerAdhocScript(String project, String scriptFilename) throws RundeckApiException,
-            RundeckApiLoginException, IllegalArgumentException, IOException {
+            RundeckApiLoginException, RundeckApiTokenException, IllegalArgumentException, IOException {
         return triggerAdhocScript(project, scriptFilename, null);
     }
 
@@ -1142,14 +1223,16 @@ public class RundeckClient implements Serializable {
      * @param options of the script - optional. See {@link OptionsBuilder}.
      * @return a {@link RundeckExecution} instance for the newly created (and running) execution - won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the project or scriptFilename is blank (null, empty or whitespace)
      * @throws IOException if we failed to read the file
      * @see #triggerAdhocScript(String, String, Properties, Properties, Integer, Boolean)
      * @see #runAdhocScript(String, String, Properties)
      */
     public RundeckExecution triggerAdhocScript(String project, String scriptFilename, Properties options)
-            throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException, IOException {
+            throws RundeckApiException, RundeckApiLoginException, RundeckApiTokenException, IllegalArgumentException,
+            IOException {
         return triggerAdhocScript(project, scriptFilename, options, null);
     }
 
@@ -1163,15 +1246,16 @@ public class RundeckClient implements Serializable {
      * @param nodeFilters for selecting nodes on which the command will be executed. See {@link NodeFiltersBuilder}
      * @return a {@link RundeckExecution} instance for the newly created (and running) execution - won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the project or scriptFilename is blank (null, empty or whitespace)
      * @throws IOException if we failed to read the file
      * @see #triggerAdhocScript(String, String, Properties, Properties, Integer, Boolean)
      * @see #runAdhocScript(String, String, Properties, Properties)
      */
     public RundeckExecution triggerAdhocScript(String project, String scriptFilename, Properties options,
-            Properties nodeFilters) throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException,
-            IOException {
+            Properties nodeFilters) throws RundeckApiException, RundeckApiLoginException, RundeckApiTokenException,
+            IllegalArgumentException, IOException {
         return triggerAdhocScript(project, scriptFilename, options, nodeFilters, null, null);
     }
 
@@ -1187,7 +1271,8 @@ public class RundeckClient implements Serializable {
      * @param nodeKeepgoing if true, continue executing on other nodes even if some fail - optional
      * @return a {@link RundeckExecution} instance for the newly created (and running) execution - won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the project or scriptFilename is blank (null, empty or whitespace)
      * @throws IOException if we failed to read the file
      * @see #triggerAdhocScript(String, InputStream, Properties, Properties, Integer, Boolean)
@@ -1195,7 +1280,7 @@ public class RundeckClient implements Serializable {
      */
     public RundeckExecution triggerAdhocScript(String project, String scriptFilename, Properties options,
             Properties nodeFilters, Integer nodeThreadcount, Boolean nodeKeepgoing) throws RundeckApiException,
-            RundeckApiLoginException, IllegalArgumentException, IOException {
+            RundeckApiLoginException, RundeckApiTokenException, IllegalArgumentException, IOException {
         AssertUtil.notBlank(scriptFilename, "scriptFilename is mandatory to trigger an ad-hoc script !");
         FileInputStream stream = null;
         try {
@@ -1214,13 +1299,14 @@ public class RundeckClient implements Serializable {
      * @param script inputStream for reading the script to be executed - mandatory
      * @return a {@link RundeckExecution} instance for the newly created (and running) execution - won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the project is blank (null, empty or whitespace) or the script is null
      * @see #triggerAdhocScript(String, InputStream, Properties, Properties, Integer, Boolean)
      * @see #runAdhocScript(String, InputStream)
      */
     public RundeckExecution triggerAdhocScript(String project, InputStream script) throws RundeckApiException,
-            RundeckApiLoginException, IllegalArgumentException {
+            RundeckApiLoginException, RundeckApiTokenException, IllegalArgumentException {
         return triggerAdhocScript(project, script, null);
     }
 
@@ -1233,13 +1319,14 @@ public class RundeckClient implements Serializable {
      * @param options of the script - optional. See {@link OptionsBuilder}.
      * @return a {@link RundeckExecution} instance for the newly created (and running) execution - won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the project is blank (null, empty or whitespace) or the script is null
      * @see #triggerAdhocScript(String, InputStream, Properties, Properties, Integer, Boolean)
      * @see #runAdhocScript(String, InputStream, Properties)
      */
     public RundeckExecution triggerAdhocScript(String project, InputStream script, Properties options)
-            throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException {
+            throws RundeckApiException, RundeckApiLoginException, RundeckApiTokenException, IllegalArgumentException {
         return triggerAdhocScript(project, script, options, null);
     }
 
@@ -1253,13 +1340,15 @@ public class RundeckClient implements Serializable {
      * @param nodeFilters for selecting nodes on which the command will be executed. See {@link NodeFiltersBuilder}
      * @return a {@link RundeckExecution} instance for the newly created (and running) execution - won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the project is blank (null, empty or whitespace) or the script is null
      * @see #triggerAdhocScript(String, InputStream, Properties, Properties, Integer, Boolean)
      * @see #runAdhocScript(String, InputStream, Properties, Properties)
      */
     public RundeckExecution triggerAdhocScript(String project, InputStream script, Properties options,
-            Properties nodeFilters) throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException {
+            Properties nodeFilters) throws RundeckApiException, RundeckApiLoginException, RundeckApiTokenException,
+            IllegalArgumentException {
         return triggerAdhocScript(project, script, options, nodeFilters, null, null);
     }
 
@@ -1275,14 +1364,15 @@ public class RundeckClient implements Serializable {
      * @param nodeKeepgoing if true, continue executing on other nodes even if some fail - optional
      * @return a {@link RundeckExecution} instance for the newly created (and running) execution - won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the project is blank (null, empty or whitespace) or the script is null
      * @see #triggerAdhocScript(String, String, Properties, Properties, Integer, Boolean)
      * @see #runAdhocScript(String, InputStream, Properties, Properties, Integer, Boolean, long, TimeUnit)
      */
     public RundeckExecution triggerAdhocScript(String project, InputStream script, Properties options,
             Properties nodeFilters, Integer nodeThreadcount, Boolean nodeKeepgoing) throws RundeckApiException,
-            RundeckApiLoginException, IllegalArgumentException {
+            RundeckApiLoginException, RundeckApiTokenException, IllegalArgumentException {
         AssertUtil.notBlank(project, "project is mandatory to trigger an ad-hoc script !");
         AssertUtil.notNull(script, "script is mandatory to trigger an ad-hoc script !");
         RundeckExecution execution = new ApiCall(this).post(new ApiPathBuilder("/run/script").param("project", project)
@@ -1309,14 +1399,15 @@ public class RundeckClient implements Serializable {
      * @param scriptFilename filename of the script to be executed - mandatory
      * @return a {@link RundeckExecution} instance for the (finished/aborted) execution - won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the project or scriptFilename is blank (null, empty or whitespace)
      * @throws IOException if we failed to read the file
      * @see #runAdhocScript(String, String, Properties, Properties, Integer, Boolean, long, TimeUnit)
      * @see #triggerAdhocScript(String, String)
      */
     public RundeckExecution runAdhocScript(String project, String scriptFilename) throws RundeckApiException,
-            RundeckApiLoginException, IllegalArgumentException, IOException {
+            RundeckApiLoginException, RundeckApiTokenException, IllegalArgumentException, IOException {
         return runAdhocScript(project, scriptFilename, null);
     }
 
@@ -1332,15 +1423,16 @@ public class RundeckClient implements Serializable {
      * @param poolingUnit unit (seconds, milli-seconds, ...) of the interval. Default to seconds.
      * @return a {@link RundeckExecution} instance for the (finished/aborted) execution - won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the project or scriptFilename is blank (null, empty or whitespace)
      * @throws IOException if we failed to read the file
      * @see #runAdhocScript(String, String, Properties, Properties, Integer, Boolean, long, TimeUnit)
      * @see #triggerAdhocScript(String, String)
      */
     public RundeckExecution runAdhocScript(String project, String scriptFilename, long poolingInterval,
-            TimeUnit poolingUnit) throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException,
-            IOException {
+            TimeUnit poolingUnit) throws RundeckApiException, RundeckApiLoginException, RundeckApiTokenException,
+            IllegalArgumentException, IOException {
         return runAdhocScript(project, scriptFilename, null, poolingInterval, poolingUnit);
     }
 
@@ -1354,14 +1446,16 @@ public class RundeckClient implements Serializable {
      * @param options of the script - optional. See {@link OptionsBuilder}.
      * @return a {@link RundeckExecution} instance for the (finished/aborted) execution - won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the project or scriptFilename is blank (null, empty or whitespace)
      * @throws IOException if we failed to read the file
      * @see #runAdhocScript(String, String, Properties, Properties, Integer, Boolean, long, TimeUnit)
      * @see #triggerAdhocScript(String, String, Properties)
      */
     public RundeckExecution runAdhocScript(String project, String scriptFilename, Properties options)
-            throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException, IOException {
+            throws RundeckApiException, RundeckApiLoginException, RundeckApiTokenException, IllegalArgumentException,
+            IOException {
         return runAdhocScript(project, scriptFilename, options, null);
     }
 
@@ -1378,7 +1472,8 @@ public class RundeckClient implements Serializable {
      * @param poolingUnit unit (seconds, milli-seconds, ...) of the interval. Default to seconds.
      * @return a {@link RundeckExecution} instance for the (finished/aborted) execution - won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the project or scriptFilename is blank (null, empty or whitespace)
      * @throws IOException if we failed to read the file
      * @see #runAdhocScript(String, String, Properties, Properties, Integer, Boolean, long, TimeUnit)
@@ -1386,7 +1481,7 @@ public class RundeckClient implements Serializable {
      */
     public RundeckExecution runAdhocScript(String project, String scriptFilename, Properties options,
             long poolingInterval, TimeUnit poolingUnit) throws RundeckApiException, RundeckApiLoginException,
-            IllegalArgumentException, IOException {
+            RundeckApiTokenException, IllegalArgumentException, IOException {
         return runAdhocScript(project, scriptFilename, options, null, poolingInterval, poolingUnit);
     }
 
@@ -1401,15 +1496,16 @@ public class RundeckClient implements Serializable {
      * @param nodeFilters for selecting nodes on which the script will be executed. See {@link NodeFiltersBuilder}
      * @return a {@link RundeckExecution} instance for the (finished/aborted) execution - won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the project or scriptFilename is blank (null, empty or whitespace)
      * @throws IOException if we failed to read the file
      * @see #runAdhocScript(String, String, Properties, Properties, Integer, Boolean, long, TimeUnit)
      * @see #triggerAdhocScript(String, String, Properties, Properties)
      */
     public RundeckExecution runAdhocScript(String project, String scriptFilename, Properties options,
-            Properties nodeFilters) throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException,
-            IOException {
+            Properties nodeFilters) throws RundeckApiException, RundeckApiLoginException, RundeckApiTokenException,
+            IllegalArgumentException, IOException {
         return runAdhocScript(project, scriptFilename, options, nodeFilters, null, null);
     }
 
@@ -1427,7 +1523,8 @@ public class RundeckClient implements Serializable {
      * @param poolingUnit unit (seconds, milli-seconds, ...) of the interval. Default to seconds.
      * @return a {@link RundeckExecution} instance for the (finished/aborted) execution - won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the project or scriptFilename is blank (null, empty or whitespace)
      * @throws IOException if we failed to read the file
      * @see #runAdhocScript(String, String, Properties, Properties, Integer, Boolean, long, TimeUnit)
@@ -1435,7 +1532,7 @@ public class RundeckClient implements Serializable {
      */
     public RundeckExecution runAdhocScript(String project, String scriptFilename, Properties options,
             Properties nodeFilters, long poolingInterval, TimeUnit poolingUnit) throws RundeckApiException,
-            RundeckApiLoginException, IllegalArgumentException, IOException {
+            RundeckApiLoginException, RundeckApiTokenException, IllegalArgumentException, IOException {
         return runAdhocScript(project, scriptFilename, options, nodeFilters, null, null, poolingInterval, poolingUnit);
     }
 
@@ -1452,7 +1549,8 @@ public class RundeckClient implements Serializable {
      * @param nodeKeepgoing if true, continue executing on other nodes even if some fail - optional
      * @return a {@link RundeckExecution} instance for the (finished/aborted) execution - won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the project or scriptFilename is blank (null, empty or whitespace)
      * @throws IOException if we failed to read the file
      * @see #runAdhocScript(String, String, Properties, Properties, Integer, Boolean, long, TimeUnit)
@@ -1460,7 +1558,7 @@ public class RundeckClient implements Serializable {
      */
     public RundeckExecution runAdhocScript(String project, String scriptFilename, Properties options,
             Properties nodeFilters, Integer nodeThreadcount, Boolean nodeKeepgoing) throws RundeckApiException,
-            RundeckApiLoginException, IllegalArgumentException, IOException {
+            RundeckApiLoginException, RundeckApiTokenException, IllegalArgumentException, IOException {
         return runAdhocScript(project,
                               scriptFilename,
                               options,
@@ -1487,7 +1585,8 @@ public class RundeckClient implements Serializable {
      * @param poolingUnit unit (seconds, milli-seconds, ...) of the interval. Default to seconds.
      * @return a {@link RundeckExecution} instance for the (finished/aborted) execution - won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the project or scriptFilename is blank (null, empty or whitespace)
      * @throws IOException if we failed to read the file
      * @see #runAdhocScript(String, InputStream, Properties, Properties, Integer, Boolean, long, TimeUnit)
@@ -1495,8 +1594,8 @@ public class RundeckClient implements Serializable {
      */
     public RundeckExecution runAdhocScript(String project, String scriptFilename, Properties options,
             Properties nodeFilters, Integer nodeThreadcount, Boolean nodeKeepgoing, long poolingInterval,
-            TimeUnit poolingUnit) throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException,
-            IOException {
+            TimeUnit poolingUnit) throws RundeckApiException, RundeckApiLoginException, RundeckApiTokenException,
+            IllegalArgumentException, IOException {
         AssertUtil.notBlank(scriptFilename, "scriptFilename is mandatory to run an ad-hoc script !");
         FileInputStream stream = null;
         try {
@@ -1523,14 +1622,15 @@ public class RundeckClient implements Serializable {
      * @param script inputStream for reading the script to be executed - mandatory
      * @return a {@link RundeckExecution} instance for the (finished/aborted) execution - won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the project is blank (null, empty or whitespace) or the script is null
      * @throws IOException if we failed to read the file
      * @see #runAdhocScript(String, InputStream, Properties, Properties, Integer, Boolean, long, TimeUnit)
      * @see #triggerAdhocScript(String, InputStream)
      */
     public RundeckExecution runAdhocScript(String project, InputStream script) throws RundeckApiException,
-            RundeckApiLoginException, IllegalArgumentException, IOException {
+            RundeckApiLoginException, RundeckApiTokenException, IllegalArgumentException, IOException {
         return runAdhocScript(project, script, null);
     }
 
@@ -1546,15 +1646,16 @@ public class RundeckClient implements Serializable {
      * @param poolingUnit unit (seconds, milli-seconds, ...) of the interval. Default to seconds.
      * @return a {@link RundeckExecution} instance for the (finished/aborted) execution - won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the project is blank (null, empty or whitespace) or the script is null
      * @throws IOException if we failed to read the file
      * @see #runAdhocScript(String, InputStream, Properties, Properties, Integer, Boolean, long, TimeUnit)
      * @see #triggerAdhocScript(String, InputStream)
      */
     public RundeckExecution runAdhocScript(String project, InputStream script, long poolingInterval,
-            TimeUnit poolingUnit) throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException,
-            IOException {
+            TimeUnit poolingUnit) throws RundeckApiException, RundeckApiLoginException, RundeckApiTokenException,
+            IllegalArgumentException, IOException {
         return runAdhocScript(project, script, null, poolingInterval, poolingUnit);
     }
 
@@ -1568,14 +1669,16 @@ public class RundeckClient implements Serializable {
      * @param options of the script - optional. See {@link OptionsBuilder}.
      * @return a {@link RundeckExecution} instance for the (finished/aborted) execution - won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the project is blank (null, empty or whitespace) or the script is null
      * @throws IOException if we failed to read the file
      * @see #runAdhocScript(String, InputStream, Properties, Properties, Integer, Boolean, long, TimeUnit)
      * @see #triggerAdhocScript(String, InputStream, Properties)
      */
     public RundeckExecution runAdhocScript(String project, InputStream script, Properties options)
-            throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException, IOException {
+            throws RundeckApiException, RundeckApiLoginException, RundeckApiTokenException, IllegalArgumentException,
+            IOException {
         return runAdhocScript(project, script, options, null);
     }
 
@@ -1592,7 +1695,8 @@ public class RundeckClient implements Serializable {
      * @param poolingUnit unit (seconds, milli-seconds, ...) of the interval. Default to seconds.
      * @return a {@link RundeckExecution} instance for the (finished/aborted) execution - won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the project is blank (null, empty or whitespace) or the script is null
      * @throws IOException if we failed to read the file
      * @see #runAdhocScript(String, InputStream, Properties, Properties, Integer, Boolean, long, TimeUnit)
@@ -1600,7 +1704,7 @@ public class RundeckClient implements Serializable {
      */
     public RundeckExecution runAdhocScript(String project, InputStream script, Properties options,
             long poolingInterval, TimeUnit poolingUnit) throws RundeckApiException, RundeckApiLoginException,
-            IllegalArgumentException, IOException {
+            RundeckApiTokenException, IllegalArgumentException, IOException {
         return runAdhocScript(project, script, options, null, poolingInterval, poolingUnit);
     }
 
@@ -1615,15 +1719,16 @@ public class RundeckClient implements Serializable {
      * @param nodeFilters for selecting nodes on which the script will be executed. See {@link NodeFiltersBuilder}
      * @return a {@link RundeckExecution} instance for the (finished/aborted) execution - won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the project is blank (null, empty or whitespace) or the script is null
      * @throws IOException if we failed to read the file
      * @see #runAdhocScript(String, InputStream, Properties, Properties, Integer, Boolean, long, TimeUnit)
      * @see #triggerAdhocScript(String, InputStream, Properties, Properties)
      */
     public RundeckExecution runAdhocScript(String project, InputStream script, Properties options,
-            Properties nodeFilters) throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException,
-            IOException {
+            Properties nodeFilters) throws RundeckApiException, RundeckApiLoginException, RundeckApiTokenException,
+            IllegalArgumentException, IOException {
         return runAdhocScript(project, script, options, nodeFilters, null, null);
     }
 
@@ -1641,7 +1746,8 @@ public class RundeckClient implements Serializable {
      * @param poolingUnit unit (seconds, milli-seconds, ...) of the interval. Default to seconds.
      * @return a {@link RundeckExecution} instance for the (finished/aborted) execution - won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the project is blank (null, empty or whitespace) or the script is null
      * @throws IOException if we failed to read the file
      * @see #runAdhocScript(String, InputStream, Properties, Properties, Integer, Boolean, long, TimeUnit)
@@ -1649,7 +1755,7 @@ public class RundeckClient implements Serializable {
      */
     public RundeckExecution runAdhocScript(String project, InputStream script, Properties options,
             Properties nodeFilters, long poolingInterval, TimeUnit poolingUnit) throws RundeckApiException,
-            RundeckApiLoginException, IllegalArgumentException, IOException {
+            RundeckApiLoginException, RundeckApiTokenException, IllegalArgumentException, IOException {
         return runAdhocScript(project, script, options, nodeFilters, null, null, poolingInterval, poolingUnit);
     }
 
@@ -1666,7 +1772,8 @@ public class RundeckClient implements Serializable {
      * @param nodeKeepgoing if true, continue executing on other nodes even if some fail - optional
      * @return a {@link RundeckExecution} instance for the (finished/aborted) execution - won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the project is blank (null, empty or whitespace) or the script is null
      * @throws IOException if we failed to read the file
      * @see #runAdhocScript(String, InputStream, Properties, Properties, Integer, Boolean, long, TimeUnit)
@@ -1674,7 +1781,7 @@ public class RundeckClient implements Serializable {
      */
     public RundeckExecution runAdhocScript(String project, InputStream script, Properties options,
             Properties nodeFilters, Integer nodeThreadcount, Boolean nodeKeepgoing) throws RundeckApiException,
-            RundeckApiLoginException, IllegalArgumentException, IOException {
+            RundeckApiLoginException, RundeckApiTokenException, IllegalArgumentException, IOException {
         return runAdhocScript(project,
                               script,
                               options,
@@ -1701,7 +1808,8 @@ public class RundeckClient implements Serializable {
      * @param poolingUnit unit (seconds, milli-seconds, ...) of the interval. Default to seconds.
      * @return a {@link RundeckExecution} instance for the (finished/aborted) execution - won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the project is blank (null, empty or whitespace) or the script is null
      * @throws IOException if we failed to read the file
      * @see #runAdhocScript(String, String, Properties, Properties, Integer, Boolean, long, TimeUnit)
@@ -1709,7 +1817,8 @@ public class RundeckClient implements Serializable {
      */
     public RundeckExecution runAdhocScript(String project, InputStream script, Properties options,
             Properties nodeFilters, Integer nodeThreadcount, Boolean nodeKeepgoing, long poolingInterval,
-            TimeUnit poolingUnit) throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException {
+            TimeUnit poolingUnit) throws RundeckApiException, RundeckApiLoginException, RundeckApiTokenException,
+            IllegalArgumentException {
         if (poolingInterval <= 0) {
             poolingInterval = DEFAULT_POOLING_INTERVAL;
             poolingUnit = DEFAULT_POOLING_UNIT;
@@ -1744,10 +1853,12 @@ public class RundeckClient implements Serializable {
      * 
      * @return a {@link List} of {@link RundeckExecution} : might be empty, but won't be null
      * @throws RundeckApiException in case of error when calling the API
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @see #getRunningExecutions(String)
      */
-    public List<RundeckExecution> getRunningExecutions() throws RundeckApiException, RundeckApiLoginException {
+    public List<RundeckExecution> getRunningExecutions() throws RundeckApiException, RundeckApiLoginException,
+            RundeckApiTokenException {
         List<RundeckExecution> executions = new ArrayList<RundeckExecution>();
         for (RundeckProject project : getProjects()) {
             executions.addAll(getRunningExecutions(project.getName()));
@@ -1761,12 +1872,13 @@ public class RundeckClient implements Serializable {
      * @param project name of the project - mandatory
      * @return a {@link List} of {@link RundeckExecution} : might be empty, but won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the project is blank (null, empty or whitespace)
      * @see #getRunningExecutions()
      */
     public List<RundeckExecution> getRunningExecutions(String project) throws RundeckApiException,
-            RundeckApiLoginException, IllegalArgumentException {
+            RundeckApiLoginException, RundeckApiTokenException, IllegalArgumentException {
         AssertUtil.notBlank(project, "project is mandatory get all running executions !");
         return new ApiCall(this).get(new ApiPathBuilder("/executions/running").param("project", project),
                                      new ListParser<RundeckExecution>(new ExecutionParser(),
@@ -1779,12 +1891,13 @@ public class RundeckClient implements Serializable {
      * @param jobId identifier of the job - mandatory
      * @return a {@link List} of {@link RundeckExecution} : might be empty, but won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent job with this ID)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the jobId is blank (null, empty or whitespace)
      * @see #getJobExecutions(String, RundeckExecution.ExecutionStatus, Long, Long)
      */
     public List<RundeckExecution> getJobExecutions(String jobId) throws RundeckApiException, RundeckApiLoginException,
-            IllegalArgumentException {
+            RundeckApiTokenException, IllegalArgumentException {
         return getJobExecutions(jobId, (ExecutionStatus) null);
     }
 
@@ -1795,13 +1908,14 @@ public class RundeckClient implements Serializable {
      * @param status of the executions, see {@link ExecutionStatus} - optional (null for all)
      * @return a {@link List} of {@link RundeckExecution} : might be empty, but won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent job with this ID)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the jobId is blank (null, empty or whitespace), or the executionStatus is
      *             invalid
      * @see #getJobExecutions(String, String, Long, Long)
      */
     public List<RundeckExecution> getJobExecutions(String jobId, String status) throws RundeckApiException,
-            RundeckApiLoginException, IllegalArgumentException {
+            RundeckApiLoginException, RundeckApiTokenException, IllegalArgumentException {
         return getJobExecutions(jobId,
                                 StringUtils.isBlank(status) ? null : ExecutionStatus.valueOf(StringUtils.upperCase(status)));
     }
@@ -1813,12 +1927,13 @@ public class RundeckClient implements Serializable {
      * @param status of the executions, see {@link ExecutionStatus} - optional (null for all)
      * @return a {@link List} of {@link RundeckExecution} : might be empty, but won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent job with this ID)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the jobId is blank (null, empty or whitespace)
      * @see #getJobExecutions(String, RundeckExecution.ExecutionStatus, Long, Long)
      */
     public List<RundeckExecution> getJobExecutions(String jobId, ExecutionStatus status) throws RundeckApiException,
-            RundeckApiLoginException, IllegalArgumentException {
+            RundeckApiLoginException, RundeckApiTokenException, IllegalArgumentException {
         return getJobExecutions(jobId, status, null, null);
     }
 
@@ -1831,13 +1946,14 @@ public class RundeckClient implements Serializable {
      * @param offset the 0-indexed offset for the first result to return - optional
      * @return a {@link List} of {@link RundeckExecution} : might be empty, but won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent job with this ID)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the jobId is blank (null, empty or whitespace), or the executionStatus is
      *             invalid
      * @see #getJobExecutions(String, RundeckExecution.ExecutionStatus, Long, Long)
      */
     public List<RundeckExecution> getJobExecutions(String jobId, String status, Long max, Long offset)
-            throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException {
+            throws RundeckApiException, RundeckApiLoginException, RundeckApiTokenException, IllegalArgumentException {
         return getJobExecutions(jobId,
                                 StringUtils.isBlank(status) ? null : ExecutionStatus.valueOf(StringUtils.upperCase(status)),
                                 max,
@@ -1853,11 +1969,12 @@ public class RundeckClient implements Serializable {
      * @param offset the 0-indexed offset for the first result to return - optional
      * @return a {@link List} of {@link RundeckExecution} : might be empty, but won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent job with this ID)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the jobId is blank (null, empty or whitespace)
      */
     public List<RundeckExecution> getJobExecutions(String jobId, ExecutionStatus status, Long max, Long offset)
-            throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException {
+            throws RundeckApiException, RundeckApiLoginException, RundeckApiTokenException, IllegalArgumentException {
         AssertUtil.notBlank(jobId, "jobId is mandatory to get the executions of a job !");
         return new ApiCall(this).get(new ApiPathBuilder("/job/", jobId, "/executions").param("status", status)
                                                                                       .param("max", max)
@@ -1872,11 +1989,12 @@ public class RundeckClient implements Serializable {
      * @param executionId identifier of the execution - mandatory
      * @return a {@link RundeckExecution} instance - won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent execution with this ID)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the executionId is null
      */
     public RundeckExecution getExecution(Long executionId) throws RundeckApiException, RundeckApiLoginException,
-            IllegalArgumentException {
+            RundeckApiTokenException, IllegalArgumentException {
         AssertUtil.notNull(executionId, "executionId is mandatory to get the details of an execution !");
         return new ApiCall(this).get(new ApiPathBuilder("/execution/", executionId.toString()),
                                      new ExecutionParser("result/executions/execution"));
@@ -1888,11 +2006,12 @@ public class RundeckClient implements Serializable {
      * @param executionId identifier of the execution - mandatory
      * @return a {@link RundeckAbort} instance - won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent execution with this ID)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the executionId is null
      */
     public RundeckAbort abortExecution(Long executionId) throws RundeckApiException, RundeckApiLoginException,
-            IllegalArgumentException {
+            RundeckApiTokenException, IllegalArgumentException {
         AssertUtil.notNull(executionId, "executionId is mandatory to abort an execution !");
         return new ApiCall(this).get(new ApiPathBuilder("/execution/", executionId.toString(), "/abort"),
                                      new AbortParser("result/abort"));
@@ -1908,12 +2027,13 @@ public class RundeckClient implements Serializable {
      * @param project name of the project - mandatory
      * @return a {@link RundeckHistory} instance - won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the project is blank (null, empty or whitespace)
      * @see #getHistory(String, String, String, String, String, Date, Date, Long, Long)
      */
     public RundeckHistory getHistory(String project) throws RundeckApiException, RundeckApiLoginException,
-            IllegalArgumentException {
+            RundeckApiTokenException, IllegalArgumentException {
         return getHistory(project, null, null, null, null, null, null, null, null);
     }
 
@@ -1925,12 +2045,13 @@ public class RundeckClient implements Serializable {
      * @param offset the 0-indexed offset for the first result to return - optional (default to O)
      * @return a {@link RundeckHistory} instance - won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the project is blank (null, empty or whitespace)
      * @see #getHistory(String, String, String, String, String, Date, Date, Long, Long)
      */
     public RundeckHistory getHistory(String project, Long max, Long offset) throws RundeckApiException,
-            RundeckApiLoginException, IllegalArgumentException {
+            RundeckApiLoginException, RundeckApiTokenException, IllegalArgumentException {
         return getHistory(project, null, null, null, null, null, null, max, offset);
     }
 
@@ -1943,12 +2064,13 @@ public class RundeckClient implements Serializable {
      * @param user include only events created by the given user - optional
      * @return a {@link RundeckHistory} instance - won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the project is blank (null, empty or whitespace)
      * @see #getHistory(String, String, String, String, String, Date, Date, Long, Long)
      */
     public RundeckHistory getHistory(String project, String jobId, String reportId, String user)
-            throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException {
+            throws RundeckApiException, RundeckApiLoginException, RundeckApiTokenException, IllegalArgumentException {
         return getHistory(project, jobId, reportId, user, null, null, null, null, null);
     }
 
@@ -1963,12 +2085,13 @@ public class RundeckClient implements Serializable {
      * @param offset the 0-indexed offset for the first result to return - optional (default to O)
      * @return a {@link RundeckHistory} instance - won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the project is blank (null, empty or whitespace)
      * @see #getHistory(String, String, String, String, String, Date, Date, Long, Long)
      */
     public RundeckHistory getHistory(String project, String jobId, String reportId, String user, Long max, Long offset)
-            throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException {
+            throws RundeckApiException, RundeckApiLoginException, RundeckApiTokenException, IllegalArgumentException {
         return getHistory(project, jobId, reportId, user, null, null, null, max, offset);
     }
 
@@ -1981,12 +2104,13 @@ public class RundeckClient implements Serializable {
      *            weeks), "5d" (= last 5 days), etc. Optional.
      * @return a {@link RundeckHistory} instance - won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the project is blank (null, empty or whitespace)
      * @see #getHistory(String, String, String, String, String, Date, Date, Long, Long)
      */
     public RundeckHistory getHistory(String project, String recent) throws RundeckApiException,
-            RundeckApiLoginException, IllegalArgumentException {
+            RundeckApiLoginException, RundeckApiTokenException, IllegalArgumentException {
         return getHistory(project, null, null, null, recent, null, null, null, null);
     }
 
@@ -2001,12 +2125,13 @@ public class RundeckClient implements Serializable {
      * @param offset the 0-indexed offset for the first result to return - optional (default to O)
      * @return a {@link RundeckHistory} instance - won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the project is blank (null, empty or whitespace)
      * @see #getHistory(String, String, String, String, String, Date, Date, Long, Long)
      */
     public RundeckHistory getHistory(String project, String recent, Long max, Long offset) throws RundeckApiException,
-            RundeckApiLoginException, IllegalArgumentException {
+            RundeckApiLoginException, RundeckApiTokenException, IllegalArgumentException {
         return getHistory(project, null, null, null, recent, null, null, max, offset);
     }
 
@@ -2018,12 +2143,13 @@ public class RundeckClient implements Serializable {
      * @param end date for the latest events to retrieve - optional
      * @return a {@link RundeckHistory} instance - won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the project is blank (null, empty or whitespace)
      * @see #getHistory(String, String, String, String, String, Date, Date, Long, Long)
      */
     public RundeckHistory getHistory(String project, Date begin, Date end) throws RundeckApiException,
-            RundeckApiLoginException, IllegalArgumentException {
+            RundeckApiLoginException, RundeckApiTokenException, IllegalArgumentException {
         return getHistory(project, null, null, null, null, begin, end, null, null);
     }
 
@@ -2037,12 +2163,13 @@ public class RundeckClient implements Serializable {
      * @param offset the 0-indexed offset for the first result to return - optional (default to O)
      * @return a {@link RundeckHistory} instance - won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the project is blank (null, empty or whitespace)
      * @see #getHistory(String, String, String, String, String, Date, Date, Long, Long)
      */
     public RundeckHistory getHistory(String project, Date begin, Date end, Long max, Long offset)
-            throws RundeckApiException, RundeckApiLoginException, IllegalArgumentException {
+            throws RundeckApiException, RundeckApiLoginException, RundeckApiTokenException, IllegalArgumentException {
         return getHistory(project, null, null, null, null, begin, end, max, offset);
     }
 
@@ -2062,12 +2189,13 @@ public class RundeckClient implements Serializable {
      * @param offset the 0-indexed offset for the first result to return - optional (default to O)
      * @return a {@link RundeckHistory} instance - won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the project is blank (null, empty or whitespace)
      */
     public RundeckHistory getHistory(String project, String jobId, String reportId, String user, String recent,
             Date begin, Date end, Long max, Long offset) throws RundeckApiException, RundeckApiLoginException,
-            IllegalArgumentException {
+            RundeckApiTokenException, IllegalArgumentException {
         AssertUtil.notBlank(project, "project is mandatory to get the history !");
         return new ApiCall(this).get(new ApiPathBuilder("/history").param("project", project)
                                                                    .param("jobIdFilter", jobId)
@@ -2090,9 +2218,10 @@ public class RundeckClient implements Serializable {
      * 
      * @return a {@link List} of {@link RundeckNode} : might be empty, but won't be null
      * @throws RundeckApiException in case of error when calling the API
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      */
-    public List<RundeckNode> getNodes() throws RundeckApiException, RundeckApiLoginException {
+    public List<RundeckNode> getNodes() throws RundeckApiException, RundeckApiLoginException, RundeckApiTokenException {
         List<RundeckNode> nodes = new ArrayList<RundeckNode>();
         for (RundeckProject project : getProjects()) {
             nodes.addAll(getNodes(project.getName()));
@@ -2106,12 +2235,13 @@ public class RundeckClient implements Serializable {
      * @param project name of the project - mandatory
      * @return a {@link List} of {@link RundeckNode} : might be empty, but won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the project is blank (null, empty or whitespace)
      * @see #getNodes(String, Properties)
      */
     public List<RundeckNode> getNodes(String project) throws RundeckApiException, RundeckApiLoginException,
-            IllegalArgumentException {
+            RundeckApiTokenException, IllegalArgumentException {
         return getNodes(project, null);
     }
 
@@ -2122,11 +2252,12 @@ public class RundeckClient implements Serializable {
      * @param nodeFilters for filtering the nodes - optional. See {@link NodeFiltersBuilder}
      * @return a {@link List} of {@link RundeckNode} : might be empty, but won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent project with this name)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the project is blank (null, empty or whitespace)
      */
     public List<RundeckNode> getNodes(String project, Properties nodeFilters) throws RundeckApiException,
-            RundeckApiLoginException, IllegalArgumentException {
+            RundeckApiLoginException, RundeckApiTokenException, IllegalArgumentException {
         AssertUtil.notBlank(project, "project is mandatory to get all nodes !");
         return new ApiCall(this).get(new ApiPathBuilder("/resources").param("project", project)
                                                                      .nodeFilters(nodeFilters),
@@ -2140,11 +2271,12 @@ public class RundeckClient implements Serializable {
      * @param project name of the project - mandatory
      * @return a {@link RundeckNode} instance - won't be null
      * @throws RundeckApiException in case of error when calling the API (non-existent name or project with this name)
-     * @throws RundeckApiLoginException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      * @throws IllegalArgumentException if the name or project is blank (null, empty or whitespace)
      */
     public RundeckNode getNode(String name, String project) throws RundeckApiException, RundeckApiLoginException,
-            IllegalArgumentException {
+            RundeckApiTokenException, IllegalArgumentException {
         AssertUtil.notBlank(name, "the name of the node is mandatory to get a node !");
         AssertUtil.notBlank(project, "project is mandatory to get a node !");
         return new ApiCall(this).get(new ApiPathBuilder("/resource/", name).param("project", project),
@@ -2160,9 +2292,11 @@ public class RundeckClient implements Serializable {
      * 
      * @return a {@link RundeckSystemInfo} instance - won't be null
      * @throws RundeckApiException in case of error when calling the API
-     * @throws RundeckApiException if the login failed
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      */
-    public RundeckSystemInfo getSystemInfo() throws RundeckApiException, RundeckApiLoginException {
+    public RundeckSystemInfo getSystemInfo() throws RundeckApiException, RundeckApiLoginException,
+            RundeckApiTokenException {
         return new ApiCall(this).get(new ApiPathBuilder("/system/info"), new SystemInfoParser("result/system"));
     }
 
@@ -2174,14 +2308,21 @@ public class RundeckClient implements Serializable {
     }
 
     /**
-     * @return the login used for authentication on the RunDeck instance
+     * @return the auth-token used for authentication on the RunDeck instance (null if using login-based auth)
+     */
+    public String getToken() {
+        return token;
+    }
+
+    /**
+     * @return the login used for authentication on the RunDeck instance (null if using token-based auth)
      */
     public String getLogin() {
         return login;
     }
 
     /**
-     * @return the password used for authentication on the RunDeck instance
+     * @return the password used for authentication on the RunDeck instance (null if using token-based auth)
      */
     public String getPassword() {
         return password;
@@ -2189,7 +2330,15 @@ public class RundeckClient implements Serializable {
 
     @Override
     public String toString() {
-        return "RundeckClient " + API_VERSION + " [" + url + "] (credentials=" + login + "|" + password + ")";
+        StringBuilder str = new StringBuilder();
+        str.append("RundeckClient ").append(API_VERSION);
+        str.append(" [").append(url).append("] ");
+        if (token != null) {
+            str.append("(token=").append(token).append(")");
+        } else {
+            str.append("(credentials=").append(login).append("|").append(password).append(")");
+        }
+        return str.toString();
     }
 
     @Override
@@ -2198,6 +2347,7 @@ public class RundeckClient implements Serializable {
         int result = 1;
         result = prime * result + ((login == null) ? 0 : login.hashCode());
         result = prime * result + ((password == null) ? 0 : password.hashCode());
+        result = prime * result + ((token == null) ? 0 : token.hashCode());
         result = prime * result + ((url == null) ? 0 : url.hashCode());
         return result;
     }
@@ -2220,6 +2370,11 @@ public class RundeckClient implements Serializable {
             if (other.password != null)
                 return false;
         } else if (!password.equals(other.password))
+            return false;
+        if (token == null) {
+            if (other.token != null)
+                return false;
+        } else if (!token.equals(other.token))
             return false;
         if (url == null) {
             if (other.url != null)
