@@ -50,6 +50,7 @@ import org.apache.http.entity.mime.content.InputStreamBody;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.conn.ProxySelectorRoutePlanner;
 import org.apache.http.message.BasicNameValuePair;
+import org.apache.http.params.HttpProtocolParams;
 import org.apache.http.protocol.HTTP;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.util.EntityUtils;
@@ -388,6 +389,9 @@ class ApiCall {
      */
     private HttpClient instantiateHttpClient() {
         DefaultHttpClient httpClient = new DefaultHttpClient();
+
+        // configure user-agent
+        HttpProtocolParams.setUserAgent(httpClient.getParams(), "RunDeck API Java Client " + RundeckClient.API_VERSION);
 
         // configure SSL
         SSLSocketFactory socketFactory = null;
