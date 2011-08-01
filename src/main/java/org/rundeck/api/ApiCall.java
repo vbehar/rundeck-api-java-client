@@ -106,16 +106,50 @@ class ApiCall {
     }
 
     /**
-     * Test the credentials (login/password) on the RunDeck instance
+     * Test the authentication on the RunDeck instance. Will delegate to either {@link #testLoginAuth()} (in case of
+     * login-based auth) or {@link #testTokenAuth()} (in case of token-based auth).
+     * 
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
+     * @see #testLoginAuth()
+     * @see #testTokenAuth()
+     */
+    public void testAuth() throws RundeckApiLoginException, RundeckApiTokenException {
+        if (client.getToken() != null) {
+            testTokenAuth();
+        } else {
+            testLoginAuth();
+        }
+    }
+
+    /**
+     * Test the login-based authentication on the RunDeck instance
      * 
      * @throws RundeckApiLoginException if the login fails
+     * @see #testAuth()
      */
-    public void testCredentials() throws RundeckApiLoginException {
+    public void testLoginAuth() throws RundeckApiLoginException {
         HttpClient httpClient = instantiateHttpClient();
         try {
             login(httpClient);
         } finally {
             httpClient.getConnectionManager().shutdown();
+        }
+    }
+
+    /**
+     * Test the token-based authentication on the RunDeck instance
+     * 
+     * @throws RundeckApiTokenException if the token is invalid
+     * @see #testAuth()
+     */
+    public void testTokenAuth() throws RundeckApiTokenException {
+        try {
+            execute(new HttpGet(client.getUrl() + RundeckClient.API_ENDPOINT + "/system/info"));
+        } catch (RundeckApiTokenException e) {
+            throw e;
+        } catch (RundeckApiException e) {
+            throw new RundeckApiTokenException("Failed to verify token", e);
         }
     }
 

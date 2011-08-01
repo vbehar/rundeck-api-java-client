@@ -32,7 +32,6 @@ import org.rundeck.api.RundeckApiException.RundeckApiLoginException;
 import org.rundeck.api.RundeckApiException.RundeckApiTokenException;
 import org.rundeck.api.domain.RundeckAbort;
 import org.rundeck.api.domain.RundeckExecution;
-import org.rundeck.api.domain.RundeckExecution.ExecutionStatus;
 import org.rundeck.api.domain.RundeckHistory;
 import org.rundeck.api.domain.RundeckJob;
 import org.rundeck.api.domain.RundeckJobsImportMethod;
@@ -40,6 +39,7 @@ import org.rundeck.api.domain.RundeckJobsImportResult;
 import org.rundeck.api.domain.RundeckNode;
 import org.rundeck.api.domain.RundeckProject;
 import org.rundeck.api.domain.RundeckSystemInfo;
+import org.rundeck.api.domain.RundeckExecution.ExecutionStatus;
 import org.rundeck.api.parser.AbortParser;
 import org.rundeck.api.parser.ExecutionParser;
 import org.rundeck.api.parser.HistoryParser;
@@ -158,12 +158,22 @@ public class RundeckClient implements Serializable {
     }
 
     /**
-     * Test your credentials (login/password) on the RunDeck instance
+     * Test the authentication on the RunDeck instance.
      * 
-     * @throws RundeckApiLoginException if the login fails
+     * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
+     * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      */
-    public void testCredentials() throws RundeckApiLoginException {
-        new ApiCall(this).testCredentials();
+    public void testAuth() throws RundeckApiLoginException, RundeckApiTokenException {
+        new ApiCall(this).testAuth();
+    }
+
+    /**
+     * @deprecated Use {@link #testAuth()}
+     * @see #testAuth()
+     */
+    @Deprecated
+    public void testCredentials() throws RundeckApiLoginException, RundeckApiTokenException {
+        testAuth();
     }
 
     /*
