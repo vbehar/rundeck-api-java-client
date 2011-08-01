@@ -37,6 +37,20 @@ puts "All RunDeck jobs : #{rundeck.jobs}"
 puts "All RunDeck running executions : #{rundeck.runningExecutions}"
 {code}
 
+h2. Authentication
+
+Starting with RunDeck API 2, there are 2 ways to authenticate :
+* the *login-based authentication* : with your login and password
+* the *token-based authentication* : with a unique token that you can generate from the RunDeck webUI
+
+{code}
+// using login-based authentication (admin/admin is the default login/password for a new RunDeck instance) :
+rundeck = RundeckClient.new("http://localhost:4440", "admin", "admin");
+
+// using token-based authentication :
+rundeck = RundeckClient.new("http://localhost:4440", "PDDNKo5VE29kpk4prOUDr2rsKdRkEvsD");
+{code}
+
 h2. Running a job
 
 {code}
