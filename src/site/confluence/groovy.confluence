@@ -11,7 +11,7 @@ Save the following script in a file named "{{rundeck.groovy}}", and execute it w
 
 {code}
 // we use Grape (Ivy) to download the lib (and its dependencies) from Maven Central Repository
-@Grab(group='org.rundeck', module='rundeck-api-java-client', version='1.2')
+@Grab(group='org.rundeck', module='rundeck-api-java-client', version='2.0')
 import org.rundeck.api.RundeckClient
 
 rundeck = new RundeckClient("http://localhost:4440", "admin", "admin")
