@@ -41,7 +41,7 @@
       <item name="Jython" href="jython.html" />
     </menu>
     <menu name="Older versions">
-      <item name="1.x (RunDedeck 1.2)" href="1.x/index.html" />
+      <item name="1.x (RunDeck 1.2)" href="1.x/index.html" />
     </menu>
     <menu ref="reports" />
   </body>
