@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.rundeck.api;
+package org.rundeck.api.request;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -55,6 +55,8 @@ import org.apache.http.protocol.HTTP;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.util.EntityUtils;
 import org.dom4j.Document;
+import org.rundeck.api.RundeckApiException;
+import org.rundeck.api.RundeckClient;
 import org.rundeck.api.RundeckApiException.RundeckApiLoginException;
 import org.rundeck.api.RundeckApiException.RundeckApiTokenException;
 import org.rundeck.api.parser.ParserHelper;
@@ -62,37 +64,42 @@ import org.rundeck.api.parser.XmlNodeParser;
 import org.rundeck.api.util.AssertUtil;
 
 /**
- * Class responsible for making the HTTP API calls
+ * TODO
  * 
  * @author Vincent Behar
  */
-@Deprecated
-class ApiCall {
+abstract class ApiRequest<T> {
 
     /** RunDeck HTTP header for the auth-token (in case of token-based authentication) */
     private static final transient String AUTH_TOKEN_HEADER = "X-RunDeck-Auth-Token";
 
     /** {@link RundeckClient} instance holding the RunDeck url and the credentials */
-    private final RundeckClient client;
+    protected final RundeckClient client;
 
     /**
-     * Build a new instance, linked to the given RunDeck client
+     * TODO
      * 
-     * @param client holding the RunDeck url and the credentials
-     * @throws IllegalArgumentException if client is null
+     * @param client
      */
-    public ApiCall(RundeckClient client) throws IllegalArgumentException {
+    protected ApiRequest(RundeckClient client) {
         super();
         this.client = client;
         AssertUtil.notNull(client, "The RunDeck Client must not be null !");
     }
 
     /**
+     * TODO
+     * 
+     * @return
+     */
+    public abstract T execute();
+
+    /**
      * Try to "ping" the RunDeck instance to see if it is alive
      * 
      * @throws RundeckApiException if the ping fails
      */
-    public void ping() throws RundeckApiException {
+    protected void ping() throws RundeckApiException {
         HttpClient httpClient = instantiateHttpClient();
         try {
             HttpResponse response = httpClient.execute(new HttpGet(client.getUrl()));
@@ -116,7 +123,7 @@ class ApiCall {
      * @see #testLoginAuth()
      * @see #testTokenAuth()
      */
-    public void testAuth() throws RundeckApiLoginException, RundeckApiTokenException {
+    protected void testAuth() throws RundeckApiLoginException, RundeckApiTokenException {
         if (client.getToken() != null) {
             testTokenAuth();
         } else {
@@ -130,7 +137,7 @@ class ApiCall {
      * @throws RundeckApiLoginException if the login fails
      * @see #testAuth()
      */
-    public void testLoginAuth() throws RundeckApiLoginException {
+    protected void testLoginAuth() throws RundeckApiLoginException {
         HttpClient httpClient = instantiateHttpClient();
         try {
             login(httpClient);
@@ -145,7 +152,7 @@ class ApiCall {
      * @throws RundeckApiTokenException if the token is invalid
      * @see #testAuth()
      */
-    public void testTokenAuth() throws RundeckApiTokenException {
+    protected void testTokenAuth() throws RundeckApiTokenException {
         try {
             execute(new HttpGet(client.getUrl() + RundeckClient.API_ENDPOINT + "/system/info"));
         } catch (RundeckApiTokenException e) {
@@ -159,14 +166,14 @@ class ApiCall {
      * Execute an HTTP GET request to the RunDeck instance, on the given path. We will login first, and then execute the
      * API call. At the end, the given parser will be used to convert the response to a more useful result object.
      * 
-     * @param apiPath on which we will make the HTTP request - see {@link OldApiPathBuilder}
+     * @param apiPath on which we will make the HTTP request - see {@link ApiPathBuilder}
      * @param parser used to parse the response
      * @return the result of the call, as formatted by the parser
      * @throws RundeckApiException in case of error when calling the API
      * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
      * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      */
-    public <T> T get(OldApiPathBuilder apiPath, XmlNodeParser<T> parser) throws RundeckApiException,
+    protected T get(ApiPathBuilder apiPath, XmlNodeParser<T> parser) throws RundeckApiException,
             RundeckApiLoginException, RundeckApiTokenException {
         return execute(new HttpGet(client.getUrl() + RundeckClient.API_ENDPOINT + apiPath), parser);
     }
@@ -175,13 +182,13 @@ class ApiCall {
      * Execute an HTTP GET request to the RunDeck instance, on the given path. We will login first, and then execute the
      * API call.
      * 
-     * @param apiPath on which we will make the HTTP request - see {@link OldApiPathBuilder}
+     * @param apiPath on which we will make the HTTP request - see {@link ApiPathBuilder}
      * @return a new {@link InputStream} instance, not linked with network resources
      * @throws RundeckApiException in case of error when calling the API
      * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
      * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      */
-    public InputStream get(OldApiPathBuilder apiPath) throws RundeckApiException, RundeckApiLoginException,
+    protected InputStream get(ApiPathBuilder apiPath) throws RundeckApiException, RundeckApiLoginException,
             RundeckApiTokenException {
         ByteArrayInputStream response = execute(new HttpGet(client.getUrl() + RundeckClient.API_ENDPOINT + apiPath));
 
@@ -196,14 +203,14 @@ class ApiCall {
      * Execute an HTTP POST request to the RunDeck instance, on the given path. We will login first, and then execute
      * the API call. At the end, the given parser will be used to convert the response to a more useful result object.
      * 
-     * @param apiPath on which we will make the HTTP request - see {@link OldApiPathBuilder}
+     * @param apiPath on which we will make the HTTP request - see {@link ApiPathBuilder}
      * @param parser used to parse the response
      * @return the result of the call, as formatted by the parser
      * @throws RundeckApiException in case of error when calling the API
      * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
      * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      */
-    public <T> T post(OldApiPathBuilder apiPath, XmlNodeParser<T> parser) throws RundeckApiException,
+    protected T post(ApiPathBuilder apiPath, XmlNodeParser<T> parser) throws RundeckApiException,
             RundeckApiLoginException, RundeckApiTokenException {
         HttpPost httpPost = new HttpPost(client.getUrl() + RundeckClient.API_ENDPOINT + apiPath);
 
@@ -221,14 +228,14 @@ class ApiCall {
      * Execute an HTTP DELETE request to the RunDeck instance, on the given path. We will login first, and then execute
      * the API call. At the end, the given parser will be used to convert the response to a more useful result object.
      * 
-     * @param apiPath on which we will make the HTTP request - see {@link OldApiPathBuilder}
+     * @param apiPath on which we will make the HTTP request - see {@link ApiPathBuilder}
      * @param parser used to parse the response
      * @return the result of the call, as formatted by the parser
      * @throws RundeckApiException in case of error when calling the API
      * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
      * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      */
-    public <T> T delete(OldApiPathBuilder apiPath, XmlNodeParser<T> parser) throws RundeckApiException,
+    protected T delete(ApiPathBuilder apiPath, XmlNodeParser<T> parser) throws RundeckApiException,
             RundeckApiLoginException, RundeckApiTokenException {
         return execute(new HttpDelete(client.getUrl() + RundeckClient.API_ENDPOINT + apiPath), parser);
     }
@@ -244,7 +251,7 @@ class ApiCall {
      * @throws RundeckApiLoginException if the login fails (in case of login-based authentication)
      * @throws RundeckApiTokenException if the token is invalid (in case of token-based authentication)
      */
-    private <T> T execute(HttpRequestBase request, XmlNodeParser<T> parser) throws RundeckApiException,
+    private T execute(HttpRequestBase request, XmlNodeParser<T> parser) throws RundeckApiException,
             RundeckApiLoginException, RundeckApiTokenException {
         // execute the request
         InputStream response = execute(request);
@@ -433,4 +440,5 @@ class ApiCall {
 
         return httpClient;
     }
+
 }

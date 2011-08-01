@@ -28,7 +28,8 @@ import org.rundeck.api.util.ParametersUtil;
  * 
  * @author Vincent Behar
  */
-class ApiPathBuilder {
+@Deprecated
+class OldApiPathBuilder {
 
     /** Internally, we store everything in a {@link StringBuilder} */
     private final StringBuilder apiPath;
@@ -45,7 +46,7 @@ class ApiPathBuilder {
      * 
      * @param paths elements of the path
      */
-    public ApiPathBuilder(String... paths) {
+    public OldApiPathBuilder(String... paths) {
         apiPath = new StringBuilder();
         attachments = new HashMap<String, InputStream>();
         if (paths != null) {
@@ -66,7 +67,7 @@ class ApiPathBuilder {
      * @param value of the parameter. May be null/empty/blank. Will be url-encoded.
      * @return this, for method chaining
      */
-    public ApiPathBuilder param(String key, String value) {
+    public OldApiPathBuilder param(String key, String value) {
         if (StringUtils.isNotBlank(value)) {
             appendSeparator();
             append(key);
@@ -85,7 +86,7 @@ class ApiPathBuilder {
      * @param value of the parameter. May be null
      * @return this, for method chaining
      */
-    public ApiPathBuilder param(String key, Enum<?> value) {
+    public OldApiPathBuilder param(String key, Enum<?> value) {
         if (value != null) {
             param(key, StringUtils.lowerCase(value.toString()));
         }
@@ -100,7 +101,7 @@ class ApiPathBuilder {
      * @param value of the parameter. May be null
      * @return this, for method chaining
      */
-    public ApiPathBuilder param(String key, Date value) {
+    public OldApiPathBuilder param(String key, Date value) {
         if (value != null) {
             param(key, value.getTime());
         }
@@ -115,7 +116,7 @@ class ApiPathBuilder {
      * @param value of the parameter. May be null
      * @return this, for method chaining
      */
-    public ApiPathBuilder param(String key, Long value) {
+    public OldApiPathBuilder param(String key, Long value) {
         if (value != null) {
             param(key, value.toString());
         }
@@ -130,7 +131,7 @@ class ApiPathBuilder {
      * @param value of the parameter. May be null
      * @return this, for method chaining
      */
-    public ApiPathBuilder param(String key, Integer value) {
+    public OldApiPathBuilder param(String key, Integer value) {
         if (value != null) {
             param(key, value.toString());
         }
@@ -145,7 +146,7 @@ class ApiPathBuilder {
      * @param value of the parameter. May be null
      * @return this, for method chaining
      */
-    public ApiPathBuilder param(String key, Boolean value) {
+    public OldApiPathBuilder param(String key, Boolean value) {
         if (value != null) {
             param(key, value.toString());
         }
@@ -159,7 +160,7 @@ class ApiPathBuilder {
      * @return this, for method chaining
      * @see ParametersUtil#generateNodeFiltersString(Properties)
      */
-    public ApiPathBuilder nodeFilters(Properties nodeFilters) {
+    public OldApiPathBuilder nodeFilters(Properties nodeFilters) {
         String filters = ParametersUtil.generateNodeFiltersString(nodeFilters);
         if (StringUtils.isNotBlank(filters)) {
             appendSeparator();
@@ -176,7 +177,7 @@ class ApiPathBuilder {
      * @param stream. May be null
      * @return this, for method chaining
      */
-    public ApiPathBuilder attach(String name, InputStream stream) {
+    public OldApiPathBuilder attach(String name, InputStream stream) {
         if (stream != null) {
             attachments.put(name, stream);
         }
