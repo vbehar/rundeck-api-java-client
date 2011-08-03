@@ -16,7 +16,7 @@ h2. What can I do with it ?
 
 h2. Where can I get more information ?
 
-* You can read the [API documentation|./apidocs/index.html], starting with the [RundeckClient|./apidocs/org/rundeck/api/RundeckClient.html] class.
+* You can read the [API documentation|./apidocs/index.html], starting with the [RundeckClient|./apidocs/reference/org/rundeck/api/RundeckClient.html] class.
 * Or you can "Use the [Source|./source-repository.html], Luke !"
 * Read more on the Maven auto-generated pages : [project information|./project-info.html] and [project reports|./project-reports.html].
 
