@@ -61,7 +61,7 @@ import org.rundeck.api.util.ParametersUtil;
  * <br>
  * Usage : <br>
  * <code>
- * <pre>
+ * <pre class="prettyprint">
  * // using login-based authentication :
  * RundeckClient rundeck = new RundeckClient("http://localhost:4440", "admin", "admin");
  * // or for a token-based authentication :
