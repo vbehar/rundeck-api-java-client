@@ -1,6 +1,9 @@
 javadoc proofread file: ./proof-read.txt
 
 
+=== reference/org/rundeck/api/package-descr.html ===
+
+
 === reference/org/rundeck/api/parser/package-descr.html ===
 
 
@@ -113,3 +116,13 @@ METHOD: loadSuccessDocument
 CONSTRUCTOR: ParametersUtilTest
 METHOD: generateArgString
 METHOD: generateNodeFiltersString
+
+
+=== org/rundeck/api/RundeckClientTest.html ===
+        Test the
+        {@link/RundeckClient}
+        . Uses betamax to unit-test HTTP requests without a live RunDeck instance.
+FIELD: recorder
+CONSTRUCTOR: RundeckClientTest
+METHOD: getProjects
+METHOD: setUp
