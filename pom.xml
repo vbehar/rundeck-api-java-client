@@ -102,8 +102,7 @@
     <plugin.project-info-reports.version>2.4</plugin.project-info-reports.version>
     <plugin.release.version>2.2.1</plugin.release.version>
     <plugin.resources.version>2.5</plugin.resources.version>
-    <!-- site 2.3 for maven 2.x and site 3.0-x for maven 3.x -->
-    <plugin.site.version>2.3</plugin.site.version>
+    <plugin.site.version>3.0</plugin.site.version>
     <plugin.source.version>2.1.2</plugin.source.version>
     <plugin.surefire.version>2.10</plugin.surefire.version>
     <plugin.taglist.version>2.4</plugin.taglist.version>
@@ -453,38 +452,6 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
-
-  <profiles>
-    <profile>
-      <!-- maven 3 specific configuration -->
-      <id>maven-3</id>
-      <activation>
-        <file>
-          <!-- This employs that the basedir expression is only recognized by Maven 3.x (see MNG-2363) -->
-          <exists>${basedir}</exists>
-        </file>
-      </activation>
-      <properties>
-        <plugin.site.version>3.0</plugin.site.version>
-      </properties>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-site-plugin</artifactId>
-            <executions>
-              <execution>
-                <id>attach-descriptor</id>
-                <goals>
-                  <goal>attach-descriptor</goal>
-                </goals>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-  </profiles>
 
 </project>
 
