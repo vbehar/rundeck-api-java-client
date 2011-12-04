@@ -5,7 +5,7 @@ h2. What is it ?
 
 A Java client (library) for the RunDeck HTTP REST API.
 
-[RunDeck|http://rundeck.org/] is an open-source tool for automating tasks on multiple nodes, with a CLI, a web-based interface and an HTTP REST API. You can read more about its API on the [RunDeck User Manual|http://rundeck.org/docs/RunDeck-Guide.html#rundeck-api].
+[RunDeck|http://rundeck.org/] is an open-source tool for automating tasks on multiple nodes, with a CLI, a web-based interface and an HTTP REST API. You can read more about its API on the [RunDeck User Manual|http://rundeck.org/docs/api/index.html].
 
 !images/rundeck.png!
 
